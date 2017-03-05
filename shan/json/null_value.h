@@ -21,8 +21,8 @@ public:
 	
 	virtual const char* parse(const char* json_text);
 
-	operator std::nullptr_t() const { return nullptr; }
-	
+	virtual std::string str() const { return "null"; }
+
 	friend std::ostream& operator<<(std::ostream& os, const null_value& n);
 };
 

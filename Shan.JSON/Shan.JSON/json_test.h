@@ -1,13 +1,13 @@
 //
-//  json_test.hpp
+//  json_test.h
 //  Shan.JSON
 //
 //  Created by Sung Han Park on 2017. 3. 2..
 //  Copyright © 2017년 Sung Han Park. All rights reserved.
 //
 
-#ifndef json_test_hpp
-#define json_test_hpp
+#ifndef json_test_h
+#define json_test_h
 
 void test_shan_json();
 

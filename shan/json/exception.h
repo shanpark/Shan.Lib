@@ -1,9 +1,9 @@
 //
-//  json_exception.h
+//  exception.h
 //  Shan.JSON
 //
 //  Created by Sung Han Park on 2017. 2. 28..
-//  Copyright © 2017년 Sung Han Park. All rights reserved.
+//  Copyright © 2017 Sung Han Park. All rights reserved.
 //
 
 #ifndef shan_json_exception_h
@@ -14,13 +14,19 @@
 namespace shan {
 namespace json {
 
-class bad_format_error : public runtime_error {
+class bad_format_error : public std::runtime_error {
 public:
-	explicit bad_format_error(const string& what) : runtime_error(what) {}
-	explicit bad_format_error(const char* what) : runtime_error(what) {}
+	explicit bad_format_error(const std::string& what) : std::runtime_error(what) {}
+	explicit bad_format_error(const char* what) : std::runtime_error(what) {}
 };
 
-}
-}
+class not_allowed_error : public std::runtime_error {
+public:
+	explicit not_allowed_error(const std::string& what) : std::runtime_error(what) {}
+	explicit not_allowed_error(const char* what) : std::runtime_error(what) {}
+};
+
+} // namespace json
+} // namespace shan
 
 #endif /* shan_json_exception_h */

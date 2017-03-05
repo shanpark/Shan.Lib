@@ -1,13 +1,27 @@
 //
 //  object.h
-//  Shan.JSON
+//  Shan
 //
 //  Created by Sung Han Park on 2017. 2. 27..
-//  Copyright © 2017년 Sung Han Park. All rights reserved.
+//  Copyright © 2017 Sung Han Park. All rights reserved.
 //
 
-#ifndef object_h
-#define object_h
+#ifndef shan_object_h
+#define shan_object_h
 
+#include <string>
 
-#endif /* object_h */
+namespace shan {
+
+class object {
+public:
+	virtual ~object() {};
+
+	// string convert
+	virtual std::string str() const { return typeid(*this).name(); }
+	operator std::string() const { return str(); };
+};
+
+} // namespace shan
+
+#endif /* shan_object_h */

@@ -48,14 +48,15 @@ char32_t surrogate_pair_to_utf32(char16_t lead, char16_t trail) {
 	return (((lead & 0x03FF) << 10) + (trail & 0x03FF)) + 0x00010000;
 }
 
-std::u16string utf32_to_surrogate_pair(char32_t utf32) {
-	std::string ret;
+std::u16string utf32_to_utf16(char32_t utf32) {
+	std::u16string ret;
 	char16_t high, low;
 
 	if (utf32 <= 0xffff) { // no surrogate char.
 		ret.push_back(utf32);
 	}
 	else {
+		//... wrong implementation...!!!
 		high = (((((utf32 >> 16) - 1) & 0x0f) << 6) | ((utf32 >> 10) & 0x3f)) | 0xdc00;
 		low = ((utf32 & 0x03ff) | 0xd800);
 
@@ -64,10 +65,6 @@ std::u16string utf32_to_surrogate_pair(char32_t utf32) {
 	}
 
 	return ret;
-}
-
-std::string to_utf8(char16_t utfnn) {
-	return to_utf8((char32_t)utfnn);
 }
 
 std::string to_utf8(char32_t utfnn) {
@@ -110,7 +107,11 @@ std::string to_utf8(char32_t utfnn) {
 	return ret;
 }
 
-char32_t to_utf32(const std::string& utf8, int* used) {
+std::string to_utf8(char16_t utfnn) {
+	return to_utf8((char32_t)utfnn);
+}
+
+char32_t to_utf32(const char* utf8, int* used) {
 	int used_byte = 0;
 	char32_t utf32 = 0;
 

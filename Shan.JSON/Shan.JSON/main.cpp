@@ -6,10 +6,11 @@
 //  Copyright © 2017년 Sung Han Park. All rights reserved.
 //
 
-#include <iostream>
+//#include <iostream>
+#include "json_test.h"
 
 int main(int argc, const char * argv[]) {
-	// insert code here...
-	std::cout << "Hello, World!\n";
+	test_shan_json();
+
     return 0;
 }
