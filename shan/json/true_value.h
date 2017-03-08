@@ -18,15 +18,18 @@ namespace json {
 class true_value : public value {
 public:
 	true_value() {};
-	
-	virtual const char* parse(const char* json_text);
 
 	virtual std::string str() const { return "true"; }
 
+	virtual const char* parse(const char* json_text);
+	virtual void parse(std::istream& is);
+
 	friend std::ostream& operator<<(std::ostream& os, const true_value& t);
+	friend std::istream& operator>>(std::istream& is, true_value& t);
 };
 
 std::ostream& operator<<(std::ostream& os, const true_value& t);
+std::istream& operator>>(std::istream& is, true_value& t);
 
 } // namespace json
 } // namespace shan

@@ -50,18 +50,17 @@ char32_t surrogate_pair_to_utf32(char16_t lead, char16_t trail) {
 
 std::u16string utf32_to_utf16(char32_t utf32) {
 	std::u16string ret;
-	char16_t high, low;
+	char16_t lead, trail;
 
 	if (utf32 <= 0xffff) { // no surrogate char.
 		ret.push_back(utf32);
 	}
 	else {
-		//... wrong implementation...!!!
-		high = (((((utf32 >> 16) - 1) & 0x0f) << 6) | ((utf32 >> 10) & 0x3f)) | 0xdc00;
-		low = ((utf32 & 0x03ff) | 0xd800);
+		lead = 0xD800 | ((utf32 - 0x10000) >> 10);
+		trail = 0xDC00 | (utf32 & 0x3FF);
 
-		ret.push_back(high);
-		ret.push_back(low);
+		ret.push_back(lead);
+		ret.push_back(trail);
 	}
 
 	return ret;

@@ -15,11 +15,11 @@ namespace shan {
 
 class object {
 public:
-	virtual ~object() {};
+	virtual ~object() = default;
 
 	// string convert
 	virtual std::string str() const { return typeid(*this).name(); }
-	operator std::string() const { return str(); };
+	operator std::string() const { return str(); }; // std::string casting operator
 };
 
 } // namespace shan

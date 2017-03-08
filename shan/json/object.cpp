@@ -17,11 +17,28 @@
 #include "null_value.h"
 #include "exception.h"
 
-namespace shan {
-namespace json {
+using namespace shan::json;
 
-object::object(const char* obj_str) {
-	object::parse(obj_str);
+value_ptr object::at(const object_base::key_type& key) {
+	return object_base::at(key);
+}
+
+const_value_ptr object::at(const object_base::key_type& key) const {
+	return object_base::at(key);
+}
+
+value_ptr object::operator[](const object_base::key_type& key) {
+	return object_base::operator[](key);
+}
+
+value_ptr object::operator[](object_base::key_type&& key) {
+	return object_base::operator[](std::move(key));
+}
+
+std::string object::str() const {
+	std::stringstream buf;
+	buf << *this;
+	return buf.str();
 }
 
 const char* object::parse(const char* json_text) {
@@ -33,7 +50,7 @@ const char* object::parse(const char* json_text) {
 	if (*it == '{')
 		skip_space(++it);
 	else
-		throw bad_format_error(std::string("Invalid JSON format: '") + *it + "'");
+		goto INVALID_FORMAT;
 
 	if (*it == '}') // empty object
 		return ++it;
@@ -45,7 +62,7 @@ const char* object::parse(const char* json_text) {
 			it = key.parse(it);
 		}
 		else {
-			throw bad_format_error(std::string("Invalid JSON format: '") + *it + "'");
+			goto INVALID_FORMAT;
 		}
 
 		skip_space(it);
@@ -54,7 +71,7 @@ const char* object::parse(const char* json_text) {
 		if (*it == ':')
 			skip_space(++it);
 		else
-			throw bad_format_error(std::string("Invalid JSON format: '") + *it + "'");
+			goto INVALID_FORMAT;
 
 		// value
 		std::shared_ptr<value> val;
@@ -81,7 +98,7 @@ const char* object::parse(const char* json_text) {
 				if ((*it == '-') || (isdigit(*it)))
 					val = std::make_shared<number>();
 				else
-					throw bad_format_error(std::string("Invalid JSON format: '") + *it + "'");
+					goto INVALID_FORMAT;
 				break;
 		}
 		it = val->parse(it);
@@ -96,19 +113,96 @@ const char* object::parse(const char* json_text) {
 		else if (*it == '}')
 			break;
 		else
-			throw bad_format_error(std::string("Invalid JSON format: '") + *it + "'");
+			goto INVALID_FORMAT;
 	}
 
 	return ++it;
+
+INVALID_FORMAT:
+	if (static_cast<bool>(*it))
+		throw bad_format_error(std::string("Invalid JSON format: '") + *it + "'");
+	else
+		throw bad_format_error(std::string("Invalid JSON format: unexpected end."));
 }
 
-std::string object::str() const {
-	std::stringstream buf;
-	buf << *this;
-	return buf.str();
+void object::parse(std::istream& is) {
+	int ch;
+
+	// {
+	if ((ch = skip_space(is)) != '{')
+		goto INVALID_FORMAT;
+
+	if ((ch = skip_space(is)) == '}') // empty object
+		return;
+
+	while (true) {
+		// key(string)
+		string key;
+		if (ch == '"') {
+			is.unget();
+			key.parse(is);
+		}
+		else {
+			goto INVALID_FORMAT;
+		}
+
+		// ':' separater
+		if ((ch = skip_space(is)) == ':')
+			ch = skip_space(is);
+		else
+			goto INVALID_FORMAT;
+
+		// value
+		std::shared_ptr<value> val;
+		switch (ch) {
+			case '{':
+				val = std::make_shared<object>();
+				break;
+			case '[':
+				val = std::make_shared<array>();
+				break;
+			case '"':
+				val = std::make_shared<string>();
+				break;
+			case 't':
+				val = std::make_shared<true_value>();
+				break;
+			case 'f':
+				val = std::make_shared<false_value>();
+				break;
+			case 'n':
+				val = std::make_shared<null_value>();
+				break;
+			default:
+				if ((ch == '-') || (isdigit(ch)))
+					val = std::make_shared<number>();
+				else
+					goto INVALID_FORMAT;
+				break;
+		}
+		is.unget();
+		val->parse(is);
+
+		// insert pair
+		insert(std::make_pair(std::move(key), std::move(val)));
+
+		ch = skip_space(is);
+		if (ch == ',')
+			ch = skip_space(is);
+		else if (ch == '}')
+			return;
+		else
+			goto INVALID_FORMAT;
+	}
+
+INVALID_FORMAT:
+	if (ch == std::istream::traits_type::eof())
+		throw bad_format_error(std::string("Invalid JSON format: unexpected end."));
+	else
+		throw bad_format_error(std::string("Invalid JSON format: '") + (char)ch + "'");
 }
 
-std::ostream& operator<<(std::ostream& os, const object& json) {
+std::ostream& shan::json::operator<<(std::ostream& os, const object& json) {
 	os << "{";
 
 	for (auto it = json.cbegin() ; it != json.cend() ; ) {
@@ -142,5 +236,7 @@ std::ostream& operator<<(std::ostream& os, const object& json) {
 	return (os << "}");
 }
 
-}
+std::istream& shan::json::operator>>(std::istream& is, object& json) {
+	json.parse(is);
+	return is;
 }

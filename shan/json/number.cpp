@@ -10,12 +10,7 @@
 #include "number.h"
 #include "exception.h"
 
-namespace shan {
-namespace json {
-
-number::number(const char* num_str) {
-	number::parse(num_str);
-}
+using namespace shan::json;
 
 const char* number::parse(const char* json_text) {
 	auto it = json_text;
@@ -35,7 +30,7 @@ const char* number::parse(const char* json_text) {
 		it++;
 	}
 	else {
-		throw bad_format_error(std::string("Invalid JSON format: '") + *it + "'");
+		goto INVALID_FORMAT;
 	}
 
 	while (isdigit(*it)) {
@@ -53,7 +48,7 @@ const char* number::parse(const char* json_text) {
 			it++;
 		}
 		else {
-			throw bad_format_error(std::string("Invalid JSON format: '") + *it + "'");
+			goto INVALID_FORMAT;
 		}
 
 		while (isdigit(*it)) {
@@ -77,7 +72,7 @@ const char* number::parse(const char* json_text) {
 			it++;
 		}
 		else {
-			throw bad_format_error(std::string("Invalid JSON format: '") + *it + "'");
+			goto INVALID_FORMAT;
 		}
 
 		while (isdigit(*it)) {
@@ -94,19 +89,86 @@ const char* number::parse(const char* json_text) {
 		_val._real = strtod(_str_rep.c_str(), nullptr);
 
 	return it;
+
+INVALID_FORMAT:
+	if (static_cast<bool>(*it))
+		throw bad_format_error(std::string("Invalid JSON format: '") + *it + "'");
+	else
+		throw bad_format_error(std::string("Invalid JSON format: unexpected end."));
 }
 
-int64_t number::int_val() {
-	return _integral ? _val._int : (int64_t)_val._real;
+void number::parse(std::istream& is) {
+	bool integral = true;
+	std::string num;
+	int ch;
+
+	if ((ch = skip_space(is)) == '-') {
+		num.push_back(ch);
+		ch = is.get();
+	}
+
+	if (isdigit(ch))
+		num.push_back(ch);
+	else
+		goto INVALID_FORMAT;
+
+	while (isdigit(ch = is.get()))
+		num.push_back(ch);
+
+	if (ch == '.') {
+		num.push_back(ch);
+		integral = false;
+
+		if (isdigit(ch = is.get()))
+			num.push_back(ch);
+		else
+			goto INVALID_FORMAT;
+
+		while (isdigit(ch = is.get()))
+			num.push_back(ch);
+	}
+
+	if ((ch == 'e') || (ch == 'E')) {
+		num.push_back('e');
+		integral = false;
+
+		ch = is.get();
+		if ((ch == '-') || (ch == '+')) {
+			num.push_back(ch);
+			ch = is.get();
+		}
+
+		if (isdigit(ch))
+			num.push_back(ch);
+		else
+			goto INVALID_FORMAT;
+
+		while (isdigit(ch = is.get()))
+			num.push_back(ch);
+	}
+
+	is.unget(); // last ch should be returned to stream
+
+	_integral = integral;
+	_str_rep = num;
+	if (_integral)
+		_val._int = strtoll(_str_rep.c_str(), nullptr, 10);
+	else
+		_val._real = strtod(_str_rep.c_str(), nullptr);
+	return;
+
+INVALID_FORMAT:
+	if (ch == std::istream::traits_type::eof())
+		throw bad_format_error(std::string("Invalid JSON format: unexpected end."));
+	else
+		throw bad_format_error(std::string("Invalid JSON format: '") + (char)ch + "'");
 }
 
-double number::real_val() {
-	return _integral ? (double)_val._int : _val._real;
-}
-
-std::ostream& operator<<(std::ostream& os, const number& num) {
+std::ostream& shan::json::operator<<(std::ostream& os, const number& num) {
 	return (os << num._str_rep);
 }
 
-}
+std::istream& shan::json::operator>>(std::istream& is, number& num) {
+	num.parse(is);
+	return is;
 }

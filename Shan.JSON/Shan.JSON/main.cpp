@@ -3,7 +3,7 @@
 //  Shan.JSON
 //
 //  Created by Sung Han Park on 2017. 2. 27..
-//  Copyright © 2017년 Sung Han Park. All rights reserved.
+//  Copyright © 2017 Sung Han Park. All rights reserved.
 //
 
 //#include <iostream>

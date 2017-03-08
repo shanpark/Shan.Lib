@@ -19,31 +19,30 @@ namespace json {
 class string : public value, public std::string {
 public:
 	string() {};
-	string(const char* str);
-	string(const std::string& str);
-	string(std::string&& str);
-	string(const string& str) = default;
-	string(string&& str) = default;
-
-	virtual ~string() = default;
-
-	string& operator=(const string& other) = default;
-	string& operator=(string&& other) = default;
-
-	virtual const char* parse(const char* json_text);
+	string(const char* str) : std::string(str) {}
+	string(const std::string& str) : std::string(str) {}
+	string(std::string&& str) : std::string(std::move(str)) {}
 
 	virtual std::string str() const { return static_cast<std::string>(*this); }
+	virtual std::string json_str() const; // in JSON format.
 
-	friend std::ostream& operator<<(std::ostream& os, const string& arr);
+	virtual const char* parse(const char* json_text);
+	virtual void parse(std::istream& is);
+
+	friend std::ostream& operator<<(std::ostream& os, const string& str);
+	friend std::istream& operator>>(std::istream& is, string& str);
 };
 
 // operator ==
 bool operator==(const string& lhs, const string& rhs) noexcept;
 bool operator==(const char* lhs, const string& rhs) noexcept;
 bool operator==(const string& lhs, const char* rhs) noexcept;
+bool operator==(const std::string& lhs, const string& rhs) noexcept;
+bool operator==(const string& lhs, const std::string& rhs) noexcept;
 
 // operator <<
 std::ostream& operator<<(std::ostream& os, const string& str);
+std::istream& operator>>(std::istream& is, string& str);
 
 } // namespace json
 } // namespace shan
