@@ -15,7 +15,7 @@
 using namespace shan::json;
 
 std::string string::json_str() const { // in JSON format.
-	std::stringstream buf;
+	std::ostringstream buf;
 	buf << *this;
 	return buf.str();
 }

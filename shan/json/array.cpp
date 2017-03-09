@@ -28,7 +28,7 @@ void array::add(shan::json::object&& obj) {
 }
 
 std::string array::str() const {
-	std::stringstream buf;
+	std::ostringstream buf;
 	buf << *this;
 	return buf.str();
 }

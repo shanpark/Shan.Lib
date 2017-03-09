@@ -36,7 +36,7 @@ value_ptr object::operator[](object_base::key_type&& key) {
 }
 
 std::string object::str() const {
-	std::stringstream buf;
+	std::ostringstream buf;
 	buf << *this;
 	return buf.str();
 }

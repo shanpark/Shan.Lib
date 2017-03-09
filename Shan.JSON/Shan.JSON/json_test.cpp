@@ -245,7 +245,7 @@ void string_test() {
 		}
 						  )"); // [AC00]=가, [D834, DD1E]=𝄞
 
-		std::stringstream is(input);
+		std::istringstream is(input);
 		shan::json::object json(is);
 		std::cout << std::endl << "\t";
 
