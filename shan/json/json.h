@@ -9,13 +9,6 @@
 #ifndef shan_json_h
 #define shan_json_h
 
-#include "object.h"
-#include "array.h"
-#include "string.h"
-#include "number.h"
-#include "true_value.h"
-#include "false_value.h"
-#include "null_value.h"
-#include "exception.h"
+#include "value.h"
 
 #endif /* shan_json_h */

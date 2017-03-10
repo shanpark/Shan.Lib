@@ -6,7 +6,6 @@
 //  Copyright © 2017 Sung Han Park. All rights reserved.
 //
 
-//#include <iostream>
 #include "json_test.h"
 
 int main(int argc, const char * argv[]) {

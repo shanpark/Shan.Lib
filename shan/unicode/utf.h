@@ -1,32 +1,10 @@
-/*
-
-  utf.h
-  Shan.Unicode
-
- Copyright (c) 2017, Sung-Han Park
- All rights reserved.
-
- Redistribution and use in source and binary forms, with or without
- modification, are permitted provided that the following conditions are met:
-
- 1. Redistributions of source code must retain the above copyright notice, this
- list of conditions and the following disclaimer.
- 2. Redistributions in binary form must reproduce the above copyright notice,
- this list of conditions and the following disclaimer in the documentation
- and/or other materials provided with the distribution.
-
- THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
- ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
- WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
- ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
- LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
- ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
- SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-*/
+//
+//  utf.h
+//  Shan.Unicode
+//
+//  Created by Sung Han Park on 2017. 2. 27..
+//  Copyright © 2017 Sung Han Park. All rights reserved.
+//
 
 #ifndef shan_unicode_utf_h
 #define shan_unicode_utf_h
@@ -36,26 +14,26 @@
 namespace shan {
 namespace unicode {
 
-bool is_lead_surrogate(char16_t utf16) {
+inline bool is_lead_surrogate(char16_t utf16) noexcept {
 	return ((utf16 & 0xFC00) == 0xD800);
 }
 
-bool is_trail_surrogate(char16_t utf16) {
+inline bool is_trail_surrogate(char16_t utf16) noexcept {
 	return ((utf16 & 0xFC00) == 0xDC00);
 }
 
-char32_t surrogate_pair_to_utf32(char16_t lead, char16_t trail) {
+inline char32_t surrogate_pair_to_utf32(char16_t lead, char16_t trail) noexcept {
 	return (((lead & 0x03FF) << 10) + (trail & 0x03FF)) + 0x00010000;
 }
 
-std::u16string utf32_to_utf16(char32_t utf32) {
+inline std::u16string utf32_to_utf16(char32_t utf32) {
 	std::u16string ret;
 	char16_t lead, trail;
 
 	if (utf32 <= 0xffff) { // no surrogate char.
 		ret.push_back(utf32);
 	}
-	else {
+	else { // make surrogate pair
 		lead = 0xD800 | ((utf32 - 0x10000) >> 10);
 		trail = 0xDC00 | (utf32 & 0x3FF);
 
@@ -66,7 +44,7 @@ std::u16string utf32_to_utf16(char32_t utf32) {
 	return ret;
 }
 
-std::string to_utf8(char32_t utfnn) {
+inline std::string utf32_to_utf8(char32_t utfnn) {
 	std::string ret;
 
 	if (utfnn < 0x80) {
@@ -106,11 +84,11 @@ std::string to_utf8(char32_t utfnn) {
 	return ret;
 }
 
-std::string to_utf8(char16_t utfnn) {
-	return to_utf8((char32_t)utfnn);
+inline std::string utf16_to_utf8(char16_t utfnn) {
+	return utf32_to_utf8((char32_t)utfnn);
 }
 
-char32_t to_utf32(const char* utf8, int* used) {
+inline char32_t utf8_to_utf32(const char* utf8, int* used) noexcept {
 	int used_byte = 0;
 	char32_t utf32 = 0;
 
@@ -152,6 +130,10 @@ char32_t to_utf32(const char* utf8, int* used) {
 	if (used)
 		*used = used_byte;
 	return utf32;
+}
+
+inline std::u16string utf8_to_utf16(const char* utf8, int* used) {
+	return utf32_to_utf16(utf8_to_utf32(utf8, used));
 }
 
 }

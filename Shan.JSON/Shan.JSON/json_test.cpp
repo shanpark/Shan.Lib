@@ -25,9 +25,19 @@ void empty_json() {
 		else
 			std::cout << "[Fail]";
 
+		if (j1.str() == "{}")
+			std::cout << "[OK]";
+		else
+			std::cout << "[Fail]";
+
 		std::stringstream is(u8"{}");
 		shan::json::object j2(is);
 		if (j2.empty())
+			std::cout << "[OK]";
+		else
+			std::cout << "[Fail]";
+
+		if (j2.json_str() == "{}")
 			std::cout << "[OK]";
 		else
 			std::cout << "[Fail]";
@@ -71,6 +81,14 @@ void general_json() {
 		std::stringstream is(input);
 		object j2(is);
 		if ((j2.size() == 8) && (j2.str() == res))
+			std::cout << "[OK]";
+		else
+			std::cout << "[Fail]";
+
+		std::stringstream is2(input);
+		object j3;
+		is2 >> j3; // >> operator test
+		if ((j3.size() == 8) && (j3.str() == res))
 			std::cout << "[OK]";
 		else
 			std::cout << "[Fail]";
@@ -127,6 +145,14 @@ void array_test() {
 			std::cout << "[Fail]";
 
 		if (json["array"]->at(6)->size() == 1)
+			std::cout << "[OK]";
+		else
+			std::cout << "[Fail]";
+
+		std::stringstream is(u8"[1, 2, 3, 4, 5, null]");
+		shan::json::array arr;
+		is >> arr; // >> operator test
+		if (arr.size() == 6)
 			std::cout << "[OK]";
 		else
 			std::cout << "[Fail]";
@@ -319,6 +345,11 @@ void string_test() {
 			std::cout << "[Fail]";
 
 		if (json["strs"]->at(11)->json_str() == u8"\"𝄞\"")
+			std::cout << "[OK]";
+		else
+			std::cout << "[Fail]";
+
+		if ((*json["strs"])[0]->json_str() == "\"hello\"")
 			std::cout << "[OK]";
 		else
 			std::cout << "[Fail]";
