@@ -31,11 +31,11 @@ inline std::u16string utf32_to_utf16(char32_t utf32) {
 	char16_t lead, trail;
 
 	if (utf32 <= 0xffff) { // no surrogate char.
-		ret.push_back(utf32);
+		ret.push_back(static_cast<char16_t>(utf32));
 	}
 	else { // make surrogate pair
-		lead = 0xD800 | ((utf32 - 0x10000) >> 10);
-		trail = 0xDC00 | (utf32 & 0x3FF);
+		lead = static_cast<char16_t>(0xD800 | ((utf32 - 0x10000) >> 10));
+		trail = static_cast<char16_t>(0xDC00 | (utf32 & 0x3FF));
 
 		ret.push_back(lead);
 		ret.push_back(trail);

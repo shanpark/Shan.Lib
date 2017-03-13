@@ -12,18 +12,81 @@
 namespace shan {
 namespace json {
 
-class string : public value, public std::string {
+class string : public value, public string_base {
 public:
 	string() {};
 	string(const char* str) : std::string(str) {}
 	string(const std::string& str) : std::string(str) {}
 	string(std::string&& str) : std::string(std::move(str)) {}
 
+	virtual bool is_string() const { return true; }
+
 	virtual std::string str() const { return static_cast<std::string>(*this); }
 	virtual std::string json_str() const { // in JSON format.
 		std::ostringstream buf;
 		buf << *this;
 		return buf.str();
+	}
+
+	using value::pack;
+	virtual std::vector<uint8_t>& pack(std::vector<uint8_t>& packed) const {
+		std::size_t len = length();
+		if (len <= 0x1f) {
+			packed.push_back(static_cast<uint8_t>(0xa0 | len));
+			packed.insert(packed.end(), cbegin(), cend());
+		}
+		else if (len <= 0xff) {
+			packed.push_back(0xd9);
+			packed.push_back(static_cast<uint8_t>(len));
+			packed.insert(packed.end(), cbegin(), cend());
+		}
+		else if (len <= 0xffff) {
+			packed.push_back(0xda);
+			packed.push_back(static_cast<uint8_t>((len >> 8) & 0xff));
+			packed.push_back(static_cast<uint8_t>(len & 0xff));
+			packed.insert(packed.end(), cbegin(), cend());
+		}
+		else {
+			packed.push_back(0xdb);
+			packed.push_back(static_cast<uint8_t>((len >> 24) & 0xff));
+			packed.push_back(static_cast<uint8_t>((len >> 16) & 0xff));
+			packed.push_back(static_cast<uint8_t>((len >> 8) & 0xff));
+			packed.push_back(static_cast<uint8_t>(len & 0xff));
+			packed.insert(packed.end(), cbegin(), cend());
+		}
+		return packed;
+	};
+	using value::unpack;
+	virtual const uint8_t* unpack(const uint8_t* bytes) {
+		auto it = bytes;
+
+		std::size_t len;
+		if ((*it >= 0xa0) && (*it <= 0xbf)) {
+			len = (*it & 0x1f);
+		}
+		else if (*it == 0xd9) {
+			len = *(++it);
+		}
+		else if (*it == 0xda) {
+			len = *(++it);
+			len = (len << 8) + *(++it);
+		}
+		else if (*it == 0xdb) {
+			len = *(++it);
+			len = (len << 8) + *(++it);
+			len = (len << 8) + *(++it);
+			len = (len << 8) + *(++it);
+		}
+		else
+			throw bad_format_error(std::string("Invalid MessagePack format."));
+
+		it++;
+		
+		clear(); // make me empty.
+		insert(end(), it, it + len);
+
+		it += len;
+		return it;
 	}
 
 	virtual const char* parse(const char* json_text) {
@@ -89,7 +152,7 @@ public:
 							}
 						}
 
-						utf16 = strtol(unicode.c_str(), nullptr, 16);
+						utf16 = static_cast<char16_t>(strtol(unicode.c_str(), nullptr, 16));
 						if (unicode::is_lead_surrogate(utf16)) {
 							// is next trail surrogate?
 							if ((*it == '\\') && (*(it + 1) == 'u')) {
@@ -105,7 +168,7 @@ public:
 									}
 								}
 
-								char16_t trail_surrogate = strtol(unicode.c_str(), nullptr, 16); // utf16 -> utf8
+								char16_t trail_surrogate = static_cast<char16_t>(strtol(unicode.c_str(), nullptr, 16));
 
 								if (unicode::is_trail_surrogate(trail_surrogate)) {
 									append(unicode::utf32_to_utf8(unicode::surrogate_pair_to_utf32(utf16, trail_surrogate)));
@@ -142,7 +205,7 @@ public:
 		return it;
 
 	INVALID_FORMAT:
-		if (static_cast<bool>(*it))
+		if (*it != '\0')
 			throw bad_format_error(std::string("Invalid JSON format: '") + *it + "'");
 		else
 			throw bad_format_error(std::string("Invalid JSON format: unexpected end."));
@@ -198,7 +261,7 @@ public:
 								goto INVALID_FORMAT;
 						}
 
-						utf16 = strtol(unicode.c_str(), nullptr, 16);
+						utf16 = static_cast<char16_t>(strtol(unicode.c_str(), nullptr, 16));
 						if (unicode::is_lead_surrogate(utf16)) {
 							// is next trail surrogate?
 							ch = is.get();
@@ -213,7 +276,7 @@ public:
 										goto INVALID_FORMAT;
 								}
 
-								char16_t trail_surrogate = strtol(unicode.c_str(), nullptr, 16); // utf16 -> utf8
+								char16_t trail_surrogate = static_cast<char16_t>(strtol(unicode.c_str(), nullptr, 16));
 
 								if (unicode::is_trail_surrogate(trail_surrogate)) {
 									append(unicode::utf32_to_utf8(unicode::surrogate_pair_to_utf32(utf16, trail_surrogate)));

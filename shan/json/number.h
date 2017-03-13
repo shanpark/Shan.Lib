@@ -31,10 +31,142 @@ public:
 		}
 	}
 
+	virtual bool is_number() const { return true; }
+
 	int64_t int_val() const { return _integral ? _val._int : static_cast<int64_t>(_val._real); }
 	double real_val() const { return _integral ? static_cast<double>(_val._int) : _val._real; }
 
 	virtual std::string str() const { return _str_rep; }
+
+	using value::pack;
+	virtual std::vector<uint8_t>& pack(std::vector<uint8_t>& packed) const {
+		if (_integral) {
+			if ((_val._int >= -32ll) && (_val._int <= 127ll)) {
+				packed.push_back(static_cast<uint8_t>(_val._int));
+			}
+			else if ((_val._int >= -128ll) && (_val._int <= 127ll)) {
+				packed.push_back(static_cast<uint8_t>(0xd0));
+				packed.push_back(static_cast<uint8_t>(_val._int & 0xff));
+			}
+			else if ((_val._int >= -32768ll) && (_val._int <= 32767ll)) {
+				packed.push_back(static_cast<uint8_t>(0xd1));
+				packed.push_back(static_cast<uint8_t>((_val._int >> 8) & 0xff));
+				packed.push_back(static_cast<uint8_t>(_val._int & 0xff));
+			}
+			else if ((_val._int >= -2147483648ll) && (_val._int <= 2147483647ll)) {
+				packed.push_back(static_cast<uint8_t>(0xd2));
+				packed.push_back(static_cast<uint8_t>((_val._int >> 24) & 0xff));
+				packed.push_back(static_cast<uint8_t>((_val._int >> 16) & 0xff));
+				packed.push_back(static_cast<uint8_t>((_val._int >> 8) & 0xff));
+				packed.push_back(static_cast<uint8_t>(_val._int & 0xff));
+			}
+			else { // if (_val._int >= -9223372036854775808) && (_val._int <= 9223372035854775807) {
+				packed.push_back(static_cast<uint8_t>(0xd3));
+				packed.push_back(static_cast<uint8_t>((_val._int >> 56) & 0xff));
+				packed.push_back(static_cast<uint8_t>((_val._int >> 48) & 0xff));
+				packed.push_back(static_cast<uint8_t>((_val._int >> 40) & 0xff));
+				packed.push_back(static_cast<uint8_t>((_val._int >> 32) & 0xff));
+				packed.push_back(static_cast<uint8_t>((_val._int >> 24) & 0xff));
+				packed.push_back(static_cast<uint8_t>((_val._int >> 16) & 0xff));
+				packed.push_back(static_cast<uint8_t>((_val._int >> 8) & 0xff));
+				packed.push_back(static_cast<uint8_t>(_val._int & 0xff));
+			}
+		}
+		else { // double
+			packed.push_back(static_cast<uint8_t>(0xcb));
+			uint64_t temp = util::hton64(_val._int);
+			packed.push_back(static_cast<uint8_t>((temp & 0xff00000000000000) >> 56)); // _val._int == _val._
+			packed.push_back(static_cast<uint8_t>((temp & 0xff000000000000) >> 48));
+			packed.push_back(static_cast<uint8_t>((temp & 0xff0000000000) >> 40));
+			packed.push_back(static_cast<uint8_t>((temp & 0xff00000000) >> 32));
+			packed.push_back(static_cast<uint8_t>((temp & 0xff000000) >> 24));
+			packed.push_back(static_cast<uint8_t>((temp & 0xff0000) >> 16));
+			packed.push_back(static_cast<uint8_t>((temp & 0xff00) >> 8));
+			packed.push_back(static_cast<uint8_t>(temp & 0xff));
+		}
+
+		return packed;
+	};
+	using value::unpack;
+	virtual const uint8_t* unpack(const uint8_t* bytes) {
+		auto it = bytes;
+
+		if ((*it <= 0x7f) || (*it >= 0xe0)) {
+			_integral = true;
+			int8_t temp = *it;
+			_val._int = temp;
+		}
+		else if (*it == 0xd0) {
+			_integral = true;
+			int8_t temp = *(++it);
+			_val._int = temp;
+		}
+		else if (*it == 0xd1) {
+			_integral = true;
+			int16_t temp = *(++it);
+			temp = (temp << 8) | *(++it);
+			_val._int = temp;
+		}
+		else if (*it == 0xd2) {
+			_integral = true;
+			int32_t temp = *(++it);
+			temp = (temp << 8) | *(++it);
+			temp = (temp << 8) | *(++it);
+			temp = (temp << 8) | *(++it);
+			_val._int = temp;
+		}
+		else if (*it == 0xd3) {
+			_integral = true;
+			int64_t temp = *(++it);
+			temp = (temp << 8) | *(++it);
+			temp = (temp << 8) | *(++it);
+			temp = (temp << 8) | *(++it);
+			temp = (temp << 8) | *(++it);
+			temp = (temp << 8) | *(++it);
+			temp = (temp << 8) | *(++it);
+			temp = (temp << 8) | *(++it);
+			_val._int = temp;
+		}
+		else if (*it == 0xca) {
+			_integral = false;
+			union {
+				int32_t _int;
+				float _real;
+			} temp;
+			temp._int = *(++it);
+			temp._int = (temp._int << 8) | *(++it);
+			temp._int = (temp._int << 8) | *(++it);
+			temp._int = (temp._int << 8) | *(++it);
+			temp._int = util::ntoh32(temp._int);
+			_val._real = temp._real;
+		}
+		else if (*it == 0xcb) {
+			_integral = false;
+			union {
+				int64_t _int;
+				double _real;
+			} temp;
+			temp._int = *(++it);
+			temp._int = (temp._int << 8) | *(++it);
+			temp._int = (temp._int << 8) | *(++it);
+			temp._int = (temp._int << 8) | *(++it);
+			temp._int = (temp._int << 8) | *(++it);
+			temp._int = (temp._int << 8) | *(++it);
+			temp._int = (temp._int << 8) | *(++it);
+			temp._int = (temp._int << 8) | *(++it);
+			temp._int = util::ntoh64(temp._int);
+			_val._real = temp._real;
+		}
+		else
+			throw bad_format_error(std::string("Invalid MessagePack format."));
+
+		if (_integral)
+			_str_rep = std::to_string(_val._int);
+		else
+			_str_rep = double_to_string(_val._real);
+
+		return ++it;
+	}
 
 	virtual const char* parse(const char* json_text) {
 		auto it = json_text;
@@ -115,7 +247,7 @@ public:
 		return it;
 
 	INVALID_FORMAT:
-		if (static_cast<bool>(*it))
+		if (*it != '\0')
 			throw bad_format_error(std::string("Invalid JSON format: '") + *it + "'");
 		else
 			throw bad_format_error(std::string("Invalid JSON format: unexpected end."));

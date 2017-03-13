@@ -10,6 +10,7 @@
 #define shan_json_value_h
 
 #include <iostream>
+#include <cstdint>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -20,6 +21,7 @@
 #include "../object.h"
 #include "exception.h"
 #include "unicode/utf.h"
+#include "util/util.h"
 
 namespace shan {
 namespace json {
@@ -31,15 +33,23 @@ using value_ptr = std::shared_ptr<value>;
 using const_value_ptr = std::shared_ptr<const value>;
 using object_base = std::map<string, value_ptr>;
 using array_base = std::vector<value_ptr>;
+using string_base = std::string;
 
 class value : public shan::object {
 public:
+	virtual bool is_null() const { return false; };
+	virtual bool is_bool() const { return false; };
+	virtual bool is_number() const { return false; };
+	virtual bool is_string() const { return false; };
+	virtual bool is_array() const { return false; };
+	virtual bool is_object() const { return false; };
+
 	template<typename T>
 	T& as() { return *(static_cast<T*>(this)); }
 	template<typename T>
 	const T& as() const { return *(static_cast<const T*>(this)); }
 
-	std::size_t size() const; // for object, array
+	std::size_t size() const; // for object, array, string
 
 	// query real values
 	value_ptr at(const object_base::key_type& key);             // for object
@@ -53,12 +63,24 @@ public:
 	const_value_ptr operator[](array_base::size_type pos) const; // for array
 
 	int64_t int_val() const;  // for number
-	double real_val() const; // for number
-	bool bool_val() const; // for true_value, false_value
-	bool is_null() const; // for check null
+	double real_val() const;  // for number
+	bool bool_val() const;    // for true_value, false_value
 
 	virtual std::string json_str() const { return str(); } // in JSON format.
 
+	// message pack
+	virtual std::vector<uint8_t> pack() const {
+		std::vector<uint8_t> packed;
+		pack(packed);
+		return packed;
+	}
+	virtual std::vector<uint8_t>& pack(std::vector<uint8_t>& packed) const = 0;
+	virtual void unpack(const std::vector<uint8_t>& packed) {
+		unpack(packed.data());
+	}
+	virtual const uint8_t* unpack(const uint8_t* bytes) = 0;
+
+	// parsing (string, stream)
 	virtual const char* parse(const char* json_text) = 0;
 	virtual void parse(std::istream& is) = 0;
 
@@ -94,6 +116,8 @@ inline std::size_t value::size() const {
 		return as<shan::json::object>().object_base::size();
 	else if (typeid(*this) == typeid(array))
 		return as<shan::json::array>().array_base::size();
+	else if (typeid(*this) == typeid(string))
+		return as<shan::json::string>().string_base::size();
 	else
 		throw not_allowed_error("The object is not a JSON object or an array. [size]");
 }
@@ -175,10 +199,6 @@ inline bool value::bool_val() const {
 		return false;
 	else
 		throw not_allowed_error("The object can not be converted to bool. [bool_val]");
-}
-	
-inline bool value::is_null() const {
-	return typeid(*this) == typeid(null_value) ? true : false;
 }
 
 } // namespace json

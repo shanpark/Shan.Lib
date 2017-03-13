@@ -16,7 +16,26 @@ class false_value : public value {
 public:
 	false_value() {};
 
+	virtual bool is_bool() const { return true; }
+
 	virtual std::string str() const { return "false"; }
+
+	using value::pack;
+	virtual std::vector<uint8_t>& pack(std::vector<uint8_t>& packed) const {
+		packed.push_back(static_cast<uint8_t>(0xc2));
+		return packed;
+	};
+	using value::unpack;
+	virtual const uint8_t* unpack(const uint8_t* bytes) {
+		auto it = bytes;
+
+		if (*it == 0xc2)
+			it++;
+		else
+			throw bad_format_error(std::string("Invalid MessagePack format."));
+
+		return it;
+	}
 
 	virtual const char* parse(const char* json_text)  {
 		auto it = json_text;
@@ -49,7 +68,7 @@ public:
 		return it;
 
 	INVALID_FORMAT:
-		if (static_cast<bool>(*it))
+		if (*it != '\0')
 			throw bad_format_error(std::string("Invalid JSON format: '") + *it + "'");
 		else
 			throw bad_format_error(std::string("Invalid JSON format: unexpected end."));
