@@ -58,7 +58,7 @@ void general_json() {
 
 	try {
 		std::string res(u8R"({"arr":[1,2.0,true,false,null,[1,2.0,true,false],{"int":123}],"false":false,"int":12345,"null":null,"obj":{"int":123,"real":12.3},"real":123.45,"string":"12345","true":true})");
-		std::string input(R"(
+		std::string input(u8R"(
 {
 	"int"   :  12345,
 	"real"  : 123.45,
@@ -75,6 +75,43 @@ void general_json() {
 
 		object j1(input);
 		if ((j1.size() == 8) && (j1.str() == res))
+			std::cout << "[OK]";
+		else
+			std::cout << "[Fail]";
+
+		if (j1["int"]->int_val() == 12345)
+			std::cout << "[OK]";
+		else
+			std::cout << "[Fail]";
+
+		if (j1["real"]->real_val() == 123.45)
+			std::cout << "[OK]";
+		else
+			std::cout << "[Fail]";
+
+		if (j1["true"]->bool_val())
+			std::cout << "[OK]";
+		else
+			std::cout << "[Fail]";
+
+		if (!(j1["false"]->bool_val()))
+			std::cout << "[OK]";
+		else
+			std::cout << "[Fail]";
+
+		std::cout << std::endl << "\t"; //====
+
+		if (j1["null"]->is_null())
+			std::cout << "[OK]";
+		else
+			std::cout << "[Fail]";
+
+		if (j1["arr"]->at(0)->int_val() == 1)
+			std::cout << "[OK]";
+		else
+			std::cout << "[Fail]";
+
+		if (j1["obj"]->at("int")->int_val() == 123)
 			std::cout << "[OK]";
 		else
 			std::cout << "[Fail]";
@@ -108,52 +145,54 @@ void array_test() {
 	std::cout << "3. Array test";
 
 	try {
-		std::string input(u8"{\"array\":[1, 2.0, true, false, null, [1, 2.0, true, false], {\"int\":123}]}");
-		object json(input);
+		std::string input(u8"[1, 2.0, true, false, null, [1, 2.0, true, false], {\"int\":123}]");
+		array arr(input);
 
 		std::cout << std::endl << "\t";
 
-		if (json["array"]->at(0)->int_val() == 1)
+		if (arr.at(0)->int_val() == 1)
 			std::cout << "[OK]";
 		else
 			std::cout << "[Fail]";
 
-		if (json["array"]->at(1)->real_val() == 2.0)
+		if (arr[1]->real_val() == 2.0)
 			std::cout << "[OK]";
 		else
 			std::cout << "[Fail]";
 
-		if (json["array"]->at(2)->bool_val())
+		if (arr.at(2)->bool_val())
 			std::cout << "[OK]";
 		else
 			std::cout << "[Fail]";
 
-		if (!json["array"]->at(3)->bool_val())
+		if (!arr[3]->bool_val())
 			std::cout << "[OK]";
 		else
 			std::cout << "[Fail]";
 
-		if (json["array"]->at(4)->is_null())
+		if (arr[4]->is_null())
 			std::cout << "[OK]";
 		else
 			std::cout << "[Fail]";
 		
 		std::cout << std::endl << "\t"; //====
 
-		if (json["array"]->at(5)->size() == 4)
+		auto& ar = *arr[5];
+		if (ar.size() == 4)
 			std::cout << "[OK]";
 		else
 			std::cout << "[Fail]";
 
-		if (json["array"]->at(6)->size() == 1)
+		auto& obj = *arr[6];
+		if (obj.size() == 1)
 			std::cout << "[OK]";
 		else
 			std::cout << "[Fail]";
 
 		std::stringstream is(u8"[1, 2, 3, 4, 5, null]");
-		shan::json::array arr;
-		is >> arr; // >> operator test
-		if (arr.size() == 6)
+		shan::json::array arr2;
+		is >> arr2; // >> operator test
+		if (arr2.size() == 6)
 			std::cout << "[OK]";
 		else
 			std::cout << "[Fail]";
