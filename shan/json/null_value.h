@@ -25,6 +25,11 @@ public:
 		packed.push_back(static_cast<uint8_t>(0xc0));
 		return packed;
 	};
+	virtual util::streambuf& pack(util::streambuf& packed) const {
+		packed.write_int8(static_cast<uint8_t>(0xc0));
+		return packed;
+	}
+
 	using value::unpack;
 	virtual const uint8_t* unpack(const uint8_t* bytes) {
 		auto it = bytes;

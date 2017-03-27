@@ -2,6 +2,9 @@
 <Workspace
    version = "1.0">
    <FileRef
+      location = "group:Shan.Net/Shan.Net.xcodeproj">
+   </FileRef>
+   <FileRef
       location = "group:Shan.JSON/Shan.JSON.xcodeproj">
    </FileRef>
 </Workspace>

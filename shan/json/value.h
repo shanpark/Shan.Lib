@@ -9,20 +9,6 @@
 #ifndef shan_json_value_h
 #define shan_json_value_h
 
-#include <iostream>
-#include <cstdint>
-#include <sstream>
-#include <string>
-#include <vector>
-#include <map>
-#include <memory>
-#include <cctype>
-#include <utility>
-#include "../object.h"
-#include "exception.h"
-#include "unicode/utf.h"
-#include "util/util.h"
-
 namespace shan {
 namespace json {
 
@@ -74,9 +60,16 @@ public:
 		pack(packed);
 		return packed;
 	}
+	// there is no pack() for streambuf.
+	// streambuf value can't be returned because streambuf is noncopyable.
 	virtual std::vector<uint8_t>& pack(std::vector<uint8_t>& packed) const = 0;
+	virtual util::streambuf& pack(util::streambuf& packed) const = 0;
+
 	virtual void unpack(const std::vector<uint8_t>& packed) {
 		unpack(packed.data());
+	}
+	virtual void unpack(const util::streambuf& packed) {
+		unpack(reinterpret_cast<const uint8_t*>(packed.in_ptr()));
 	}
 	virtual const uint8_t* unpack(const uint8_t* bytes) = 0;
 

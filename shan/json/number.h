@@ -87,6 +87,55 @@ public:
 
 		return packed;
 	};
+	virtual util::streambuf& pack(util::streambuf& packed) const {
+		if (_integral) {
+			if ((_val._int >= -32ll) && (_val._int <= 127ll)) {
+				packed.write_int8(static_cast<uint8_t>(_val._int));
+			}
+			else if ((_val._int >= -128ll) && (_val._int <= 127ll)) {
+				packed.write_int8(static_cast<uint8_t>(0xd0));
+				packed.write_int8(static_cast<uint8_t>(_val._int & 0xff));
+			}
+			else if ((_val._int >= -32768ll) && (_val._int <= 32767ll)) {
+				packed.write_int8(static_cast<uint8_t>(0xd1));
+				packed.write_int8(static_cast<uint8_t>((_val._int >> 8) & 0xff));
+				packed.write_int8(static_cast<uint8_t>(_val._int & 0xff));
+			}
+			else if ((_val._int >= -2147483648ll) && (_val._int <= 2147483647ll)) {
+				packed.write_int8(static_cast<uint8_t>(0xd2));
+				packed.write_int8(static_cast<uint8_t>((_val._int >> 24) & 0xff));
+				packed.write_int8(static_cast<uint8_t>((_val._int >> 16) & 0xff));
+				packed.write_int8(static_cast<uint8_t>((_val._int >> 8) & 0xff));
+				packed.write_int8(static_cast<uint8_t>(_val._int & 0xff));
+			}
+			else { // if (_val._int >= -9223372036854775808) && (_val._int <= 9223372035854775807) {
+				packed.write_int8(static_cast<uint8_t>(0xd3));
+				packed.write_int8(static_cast<uint8_t>((_val._int >> 56) & 0xff));
+				packed.write_int8(static_cast<uint8_t>((_val._int >> 48) & 0xff));
+				packed.write_int8(static_cast<uint8_t>((_val._int >> 40) & 0xff));
+				packed.write_int8(static_cast<uint8_t>((_val._int >> 32) & 0xff));
+				packed.write_int8(static_cast<uint8_t>((_val._int >> 24) & 0xff));
+				packed.write_int8(static_cast<uint8_t>((_val._int >> 16) & 0xff));
+				packed.write_int8(static_cast<uint8_t>((_val._int >> 8) & 0xff));
+				packed.write_int8(static_cast<uint8_t>(_val._int & 0xff));
+			}
+		}
+		else { // double
+			packed.write_int8(static_cast<uint8_t>(0xcb));
+			uint64_t temp = util::hton64(_val._int);
+			packed.write_int8(static_cast<uint8_t>((temp & 0xff00000000000000) >> 56)); // _val._int == _val._
+			packed.write_int8(static_cast<uint8_t>((temp & 0xff000000000000) >> 48));
+			packed.write_int8(static_cast<uint8_t>((temp & 0xff0000000000) >> 40));
+			packed.write_int8(static_cast<uint8_t>((temp & 0xff00000000) >> 32));
+			packed.write_int8(static_cast<uint8_t>((temp & 0xff000000) >> 24));
+			packed.write_int8(static_cast<uint8_t>((temp & 0xff0000) >> 16));
+			packed.write_int8(static_cast<uint8_t>((temp & 0xff00) >> 8));
+			packed.write_int8(static_cast<uint8_t>(temp & 0xff));
+		}
+
+		return packed;
+	}
+
 	using value::unpack;
 	virtual const uint8_t* unpack(const uint8_t* bytes) {
 		auto it = bytes;

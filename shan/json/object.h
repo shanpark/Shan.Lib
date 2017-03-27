@@ -117,7 +117,7 @@ public:
 			}
 		}
 		else if (len <= 0xffff) {
-			packed.push_back(0xde);
+			packed.push_back(static_cast<uint8_t>(0xde));
 			packed.push_back(static_cast<uint8_t>((len >> 8) & 0xff));
 			packed.push_back(static_cast<uint8_t>(len & 0xff));
 			for (const auto& pair : *this) {
@@ -126,7 +126,7 @@ public:
 			}
 		}
 		else {
-			packed.push_back(0xdf);
+			packed.push_back(static_cast<uint8_t>(0xdf));
 			packed.push_back(static_cast<uint8_t>((len >> 24) & 0xff));
 			packed.push_back(static_cast<uint8_t>((len >> 16) & 0xff));
 			packed.push_back(static_cast<uint8_t>((len >> 8) & 0xff));
@@ -138,6 +138,38 @@ public:
 		}
 		return packed;
 	};
+	virtual util::streambuf& pack(util::streambuf& packed) const {
+		std::size_t len = size();
+		if (len <= 0x0f) {
+			packed.write_int8(static_cast<uint8_t>(0x80 | len));
+			for (const auto& pair : *this) {
+				pair.first.pack(packed); // string
+				pair.second->pack(packed); // value_ptr
+			}
+		}
+		else if (len <= 0xffff) {
+			packed.write_int8(static_cast<uint8_t>(0xde));
+			packed.write_int8(static_cast<uint8_t>((len >> 8) & 0xff));
+			packed.write_int8(static_cast<uint8_t>(len & 0xff));
+			for (const auto& pair : *this) {
+				pair.first.pack(packed); // string
+				pair.second->pack(packed); // value_ptr
+			}
+		}
+		else {
+			packed.write_int8(static_cast<uint8_t>(0xdf));
+			packed.write_int8(static_cast<uint8_t>((len >> 24) & 0xff));
+			packed.write_int8(static_cast<uint8_t>((len >> 16) & 0xff));
+			packed.write_int8(static_cast<uint8_t>((len >> 8) & 0xff));
+			packed.write_int8(static_cast<uint8_t>(len & 0xff));
+			for (const auto& pair : *this) {
+				pair.first.pack(packed); // string
+				pair.second->pack(packed); // value_ptr
+			}
+		}
+		return packed;
+	}
+
 	using value::unpack;
 	virtual const uint8_t* unpack(const uint8_t* bytes) {
 		auto it = bytes;

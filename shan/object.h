@@ -17,11 +17,29 @@ class object {
 public:
 	virtual ~object() = default;
 
+	virtual std::size_t hash() const {
+		return reinterpret_cast<size_t>(const_cast<object*>(this));
+	}
+
 	// string convert
 	virtual std::string str() const { return typeid(*this).name(); }
 	operator std::string() const { return str(); }; // std::string casting operator
 };
 
+using object_ptr = std::shared_ptr<object>;
+
 } // namespace shan
+
+namespace std {
+
+template <>
+class hash<shan::object> {
+public:
+	size_t operator()(const shan::object& obj) const {
+		return obj.hash();
+	}
+};
+
+} // namespace std
 
 #endif /* shan_object_h */

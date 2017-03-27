@@ -2,11 +2,11 @@
 C++ Class Library for C++11
 
 ### Shan.JSON
- Header only library for Parsing & Generating JSON.<br/>
+ Header only library for Parsing & Generating JSON.
  - Easy & Simple way to handle JSON.
  - Easy I/O from/to stream or string.
- - STL Compatible object(map), array(vector), string.
  - MessagePack encoding support.
+ - STL Compatible object(map), array(vector), string.
 
     [Shan.JSON Manual](http://progtrend.blogspot.kr/p/shanjson.html)
 

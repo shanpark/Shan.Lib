@@ -215,3 +215,8 @@ xcuserdata/
 ####
 # UNKNOWN: recommended by others, but I can't discover what these files are
 #
+
+###
+# external library. don't have to manage it in git.
+#
+asio-1.10.6/

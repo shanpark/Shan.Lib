@@ -14,11 +14,23 @@
 namespace shan {
 namespace util {
 
+class noncopyable {
+protected:
+	noncopyable() {}
+	~noncopyable() {}
+
+public:
+	noncopyable(const noncopyable&) = delete;
+	const noncopyable& operator=(const noncopyable&) = delete;
+};
+
+// for endian checking
 static const union {
 	uint32_t x;
 	uint8_t c;
 } __is_le{1};
 
+// swap byte order
 inline uint16_t swap_bo16(uint16_t x) {
 	return (((x & 0xff) << 8) | (x >> 8));
 }
@@ -30,6 +42,7 @@ inline uint64_t swap_bo64(uint64_t x) {
 			((x >> 8) & 0xff000000) | ((x >> 24) & 0xff0000) | ((x >> 40) & 0xff00) | (x >> 56));
 }
 
+// host <-> network byte order conversion
 inline uint16_t hton16(uint16_t x) {
 	return  ((__is_le.c) ? swap_bo16(x) : x);
 }

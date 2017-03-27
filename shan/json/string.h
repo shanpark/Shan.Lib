@@ -21,6 +21,13 @@ public:
 
 	virtual bool is_string() const { return true; }
 
+	std::size_t size() const noexcept { return string_base::size(); }
+
+	string_base::reference at(string_base::size_type pos) { return string_base::at(pos); }
+	string_base::const_reference at(string_base::size_type pos) const { return string_base::at(pos); }
+	string_base::reference operator [](string_base::size_type pos) { return string_base::operator[](pos); }
+	string_base::const_reference operator [](string_base::size_type pos) const { return string_base::operator[](pos); }
+
 	virtual std::string str() const { return static_cast<std::string>(*this); }
 	virtual std::string json_str() const { // in JSON format.
 		std::ostringstream buf;
@@ -56,6 +63,38 @@ public:
 		}
 		return packed;
 	};
+	virtual util::streambuf& pack(util::streambuf& packed) const {
+		std::size_t len = length();
+		if (len <= 0x1f) {
+			packed.write_int8(static_cast<uint8_t>(0xa0 | len));
+			std::memcpy(packed.prepare(len), &((*this)[0]), len);
+			packed.commit(len);
+		}
+		else if (len <= 0xff) {
+			packed.write_int8(static_cast<uint8_t>(0xd9));
+			packed.write_int8(static_cast<uint8_t>(len));
+			std::memcpy(packed.prepare(len), &((*this)[0]), len);
+			packed.commit(len);
+		}
+		else if (len <= 0xffff) {
+			packed.write_int8(static_cast<uint8_t>(0xda));
+			packed.write_int8(static_cast<uint8_t>((len >> 8) & 0xff));
+			packed.write_int8(static_cast<uint8_t>(len & 0xff));
+			std::memcpy(packed.prepare(len), &((*this)[0]), len);
+			packed.commit(len);
+		}
+		else {
+			packed.write_int8(static_cast<uint8_t>(0xdb));
+			packed.write_int8(static_cast<uint8_t>((len >> 24) & 0xff));
+			packed.write_int8(static_cast<uint8_t>((len >> 16) & 0xff));
+			packed.write_int8(static_cast<uint8_t>((len >> 8) & 0xff));
+			packed.write_int8(static_cast<uint8_t>(len & 0xff));
+			std::memcpy(packed.prepare(len), &((*this)[0]), len);
+			packed.commit(len);
+		}
+		return packed;
+	}
+
 	using value::unpack;
 	virtual const uint8_t* unpack(const uint8_t* bytes) {
 		auto it = bytes;

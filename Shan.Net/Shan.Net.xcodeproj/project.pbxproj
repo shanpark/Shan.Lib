@@ -1,0 +1,328 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 46;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		9067B0431E77CF0A00FEBD3B /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9067B0421E77CF0A00FEBD3B /* main.cpp */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		9067B03D1E77CF0A00FEBD3B /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		903913481E88E99D00976D40 /* streambuf.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = streambuf.h; path = ../shan/util/streambuf.h; sourceTree = "<group>"; };
+		903913491E88EA7400976D40 /* exception.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = exception.h; path = ../shan/util/exception.h; sourceTree = "<group>"; };
+		9067B03F1E77CF0A00FEBD3B /* Shan.Net */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = Shan.Net; sourceTree = BUILT_PRODUCTS_DIR; };
+		9067B0421E77CF0A00FEBD3B /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
+		9067B0501E77CF9B00FEBD3B /* object.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = object.h; path = ../shan/object.h; sourceTree = "<group>"; };
+		9067B0521E77D03100FEBD3B /* net.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = net.h; path = ../shan/net/net.h; sourceTree = "<group>"; };
+		9067B0531E77D17D00FEBD3B /* acceptor.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = acceptor.h; path = ../shan/net/acceptor.h; sourceTree = "<group>"; };
+		9067B0541E77D19300FEBD3B /* channel.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = channel.h; path = ../shan/net/channel.h; sourceTree = "<group>"; };
+		9067B0551E77D24500FEBD3B /* handler.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = handler.h; path = ../shan/net/handler.h; sourceTree = "<group>"; };
+		9067B0571E77D31F00FEBD3B /* context.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = context.h; path = ../shan/net/context.h; sourceTree = "<group>"; };
+		9067B0581E77D4E900FEBD3B /* handler_pipeline.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = handler_pipeline.h; path = ../shan/net/handler_pipeline.h; sourceTree = "<group>"; };
+		9067B0591E77D99A00FEBD3B /* server.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = server.h; path = ../shan/net/server.h; sourceTree = "<group>"; };
+		9067B05A1E77D9B600FEBD3B /* client.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = client.h; path = ../shan/net/client.h; sourceTree = "<group>"; };
+		9067B05B1E78F86300FEBD3B /* service.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = service.h; path = ../shan/net/service.h; sourceTree = "<group>"; };
+		9067B05C1E79026200FEBD3B /* udp_service.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = udp_service.h; path = ../shan/net/udp_service.h; sourceTree = "<group>"; };
+		9067B05D1E791B6800FEBD3B /* exception.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = exception.h; path = ../shan/net/exception.h; sourceTree = "<group>"; };
+		9067B05E1E793ECA00FEBD3B /* tcp_channel.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = tcp_channel.h; path = ../shan/net/tcp_channel.h; sourceTree = "<group>"; };
+		9067B05F1E7AB25400FEBD3B /* acceptor_handler.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = acceptor_handler.h; path = ../shan/net/acceptor_handler.h; sourceTree = "<group>"; };
+		9067B0601E7AB6BB00FEBD3B /* channel_handler.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = channel_handler.h; path = ../shan/net/channel_handler.h; sourceTree = "<group>"; };
+		9067B0611E7ABE7500FEBD3B /* constants.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = constants.h; path = ../shan/net/constants.h; sourceTree = "<group>"; };
+		9067B0621E7B809500FEBD3B /* acceptor_context.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = acceptor_context.h; path = ../shan/net/acceptor_context.h; sourceTree = "<group>"; };
+		9067B0631E7B81EF00FEBD3B /* channel_context.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = channel_context.h; path = ../shan/net/channel_context.h; sourceTree = "<group>"; };
+		9067B0671E7CD32E00FEBD3B /* util.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = util.h; path = ../shan/util/util.h; sourceTree = "<group>"; };
+		909E6C541E82B3BA005515B6 /* tcp_service.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = tcp_service.h; path = ../shan/net/tcp_service.h; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		9067B03C1E77CF0A00FEBD3B /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		9067B0361E77CF0A00FEBD3B = {
+			isa = PBXGroup;
+			children = (
+				9067B04F1E77CF8600FEBD3B /* shan */,
+				9067B0411E77CF0A00FEBD3B /* Shan.Net */,
+				9067B0401E77CF0A00FEBD3B /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		9067B0401E77CF0A00FEBD3B /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				9067B03F1E77CF0A00FEBD3B /* Shan.Net */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		9067B0411E77CF0A00FEBD3B /* Shan.Net */ = {
+			isa = PBXGroup;
+			children = (
+				9067B0421E77CF0A00FEBD3B /* main.cpp */,
+			);
+			path = Shan.Net;
+			sourceTree = "<group>";
+		};
+		9067B04F1E77CF8600FEBD3B /* shan */ = {
+			isa = PBXGroup;
+			children = (
+				9067B0501E77CF9B00FEBD3B /* object.h */,
+				9067B0511E77CFAF00FEBD3B /* net */,
+				9067B0661E7CD31200FEBD3B /* util */,
+			);
+			name = shan;
+			sourceTree = "<group>";
+		};
+		9067B0511E77CFAF00FEBD3B /* net */ = {
+			isa = PBXGroup;
+			children = (
+				9067B0521E77D03100FEBD3B /* net.h */,
+				9067B05D1E791B6800FEBD3B /* exception.h */,
+				9067B0611E7ABE7500FEBD3B /* constants.h */,
+				9067B0541E77D19300FEBD3B /* channel.h */,
+				9067B0531E77D17D00FEBD3B /* acceptor.h */,
+				9067B05E1E793ECA00FEBD3B /* tcp_channel.h */,
+				9067B0551E77D24500FEBD3B /* handler.h */,
+				9067B05F1E7AB25400FEBD3B /* acceptor_handler.h */,
+				9067B0601E7AB6BB00FEBD3B /* channel_handler.h */,
+				9067B0581E77D4E900FEBD3B /* handler_pipeline.h */,
+				9067B0571E77D31F00FEBD3B /* context.h */,
+				9067B0621E7B809500FEBD3B /* acceptor_context.h */,
+				9067B0631E7B81EF00FEBD3B /* channel_context.h */,
+				9067B05B1E78F86300FEBD3B /* service.h */,
+				909E6C541E82B3BA005515B6 /* tcp_service.h */,
+				9067B0591E77D99A00FEBD3B /* server.h */,
+				9067B05A1E77D9B600FEBD3B /* client.h */,
+				9067B05C1E79026200FEBD3B /* udp_service.h */,
+			);
+			name = net;
+			sourceTree = "<group>";
+		};
+		9067B0661E7CD31200FEBD3B /* util */ = {
+			isa = PBXGroup;
+			children = (
+				903913491E88EA7400976D40 /* exception.h */,
+				903913481E88E99D00976D40 /* streambuf.h */,
+				9067B0671E7CD32E00FEBD3B /* util.h */,
+			);
+			name = util;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		9067B03E1E77CF0A00FEBD3B /* Shan.Net */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 9067B0461E77CF0A00FEBD3B /* Build configuration list for PBXNativeTarget "Shan.Net" */;
+			buildPhases = (
+				9067B03B1E77CF0A00FEBD3B /* Sources */,
+				9067B03C1E77CF0A00FEBD3B /* Frameworks */,
+				9067B03D1E77CF0A00FEBD3B /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Shan.Net;
+			productName = Shan.Net;
+			productReference = 9067B03F1E77CF0A00FEBD3B /* Shan.Net */;
+			productType = "com.apple.product-type.tool";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		9067B0371E77CF0A00FEBD3B /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastUpgradeCheck = 0810;
+				ORGANIZATIONNAME = "Sung Han Park";
+				TargetAttributes = {
+					9067B03E1E77CF0A00FEBD3B = {
+						CreatedOnToolsVersion = 8.1;
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = 9067B03A1E77CF0A00FEBD3B /* Build configuration list for PBXProject "Shan.Net" */;
+			compatibilityVersion = "Xcode 3.2";
+			developmentRegion = English;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+			);
+			mainGroup = 9067B0361E77CF0A00FEBD3B;
+			productRefGroup = 9067B0401E77CF0A00FEBD3B /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				9067B03E1E77CF0A00FEBD3B /* Shan.Net */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		9067B03B1E77CF0A00FEBD3B /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9067B0431E77CF0A00FEBD3B /* main.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		9067B0441E77CF0A00FEBD3B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_CXX_LANGUAGE_STANDARD = "c++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_SUSPICIOUS_MOVES = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "-";
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = "DEBUG=1";
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				HEADER_SEARCH_PATHS = (
+					../shan,
+					"asio-1.10.6/include",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 10.12;
+				MTL_ENABLE_DEBUG_INFO = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		9067B0451E77CF0A00FEBD3B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_CXX_LANGUAGE_STANDARD = "c++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_SUSPICIOUS_MOVES = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "-";
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_PREPROCESSOR_DEFINITIONS = "";
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				HEADER_SEARCH_PATHS = (
+					../shan,
+					"asio-1.10.6/include",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 10.12;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		9067B0471E77CF0A00FEBD3B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		9067B0481E77CF0A00FEBD3B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		9067B03A1E77CF0A00FEBD3B /* Build configuration list for PBXProject "Shan.Net" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9067B0441E77CF0A00FEBD3B /* Debug */,
+				9067B0451E77CF0A00FEBD3B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		9067B0461E77CF0A00FEBD3B /* Build configuration list for PBXNativeTarget "Shan.Net" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9067B0471E77CF0A00FEBD3B /* Debug */,
+				9067B0481E77CF0A00FEBD3B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 9067B0371E77CF0A00FEBD3B /* Project object */;
+}
