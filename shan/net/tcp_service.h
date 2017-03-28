@@ -48,6 +48,8 @@ public:
 protected:
 	void read_complete(const asio::error_code& error, util::streambuf_ptr sb_ptr, channel_context_ptr ch_ctx_ptr) {
 		if (error) {
+			streambuf_pool::return_object(sb_ptr); // sb_ptr will not be used. sb_ptr should be returned to the pool.
+
 			if ((asio::error::eof == error) ||
 				(asio::error::connection_reset == error) ||
 				(asio::error::operation_aborted == error) ||
@@ -96,12 +98,10 @@ protected:
 	}
 
 	void fire_channel_read(channel_context_ptr ch_ctx_ptr, util::streambuf_ptr& sb_ptr) {
-		auto copy_sb_ptr = std::make_shared<util::streambuf>(); // make a copy
-		copy_sb_ptr->append(*sb_ptr);
-
-		ch_ctx_ptr->strand().post([this, ch_ctx_ptr, copy_sb_ptr]() { //
+		ch_ctx_ptr->strand().post([this, ch_ctx_ptr, sb_ptr]() { //
 			// copy to context's buffer
-			ch_ctx_ptr->read_buf()->append(*copy_sb_ptr);
+			ch_ctx_ptr->read_buf()->append(*sb_ptr);
+			streambuf_pool::return_object(sb_ptr); // return for reuse.
 
 			ch_ctx_ptr->done(false); // reset context to 'not done'.
 			do {

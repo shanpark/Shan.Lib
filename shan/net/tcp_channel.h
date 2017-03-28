@@ -16,7 +16,13 @@ class tcp_channel : public channel {
 	friend class channel_context;
 public:
 	tcp_channel(asio::ip::tcp::socket&& socket, std::size_t buffer_base_size)
-	: channel(), _socket(std::move(socket)), _streambuf_ptr(std::make_shared<util::streambuf>(buffer_base_size)), _write_strand(_socket.get_io_service()) {}
+	: channel(), _socket(std::move(socket))
+	, _streambuf_ptr(streambuf_pool::get_object(buffer_base_size))
+	, _write_strand(_socket.get_io_service()) {}
+
+	virtual ~tcp_channel() {
+		streambuf_pool::return_object(_streambuf_ptr);
+	}
 
 	virtual std::size_t id() const { return static_cast<std::size_t>(const_cast<tcp_channel*>(this)->_socket.native_handle()); }
 
@@ -56,7 +62,10 @@ private:
 		if (!error)
 			_streambuf_ptr->commit(bytes_transferred);
 
-		read_handler(error, _streambuf_ptr); // _streambuf_ptr's data is copied in the handler.
+		auto read_data = _streambuf_ptr; // send read buffer itself to higher layer to remove data copy
+		_streambuf_ptr = streambuf_pool::get_object(_streambuf_ptr->base_size()); // set a new streambuf as a read buffer.
+
+		read_handler(error, read_data); // read_data should be returned to the pool in read_handler().
 	}
 
 	void write_complete(const asio::error_code& error, std::size_t bytes_transferred, util::streambuf_ptr write_buf_ptr, std::function<write_complete_handler> write_handler) {

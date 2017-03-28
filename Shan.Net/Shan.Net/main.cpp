@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <iostream>
 #include "net/net.h"
+#include "util/pool.h"
 
 using namespace std;
 using namespace shan::net;
@@ -47,7 +48,7 @@ class acpt_handler : public acceptor_handler {
 class channel_coder : public channel_handler {
 	virtual void channel_read(channel_context* ctx, shan::object_ptr& data) {
 		std::lock_guard<std::mutex> _lock(_mutex);
-		auto sb_ptr = static_pointer_cast<shan::util::streambuf>(data);
+		auto sb_ptr = static_cast<shan::util::streambuf*>(data.get());
 		if (sb_ptr->in_size() < sizeof(std::time_t)) { // not enough data
 			ctx->done(true);
 			return;
@@ -61,11 +62,12 @@ class channel_coder : public channel_handler {
 
 	virtual void channel_write(channel_context* ctx, shan::object_ptr& data) {
 		std::lock_guard<std::mutex> _lock(_mutex);
-		auto time_ptr = static_pointer_cast<unix_time>(data);
+		auto time_ptr = static_cast<unix_time*>(data.get());
 
 		auto sb_ptr = std::make_shared<shan::util::streambuf>(sizeof(std::time_t));
 		sb_ptr->write_int64(time_ptr->get_time());
-		data = sb_ptr;
+
+		data = sb_ptr; // return new converted object.
 	}
 };
 
@@ -96,7 +98,7 @@ public:
 
 	virtual void channel_read(channel_context* ctx, shan::object_ptr& data) {
 		std::lock_guard<std::mutex> _lock(_mutex);
-		auto sb_ptr = static_pointer_cast<shan::util::streambuf>(data);
+		auto sb_ptr = static_cast<shan::util::streambuf*>(data.get());
 		cout << "serv_ch_handler::" << "channel_read() - " << sb_ptr->in_size() << endl;
 		sb_ptr->consume(sb_ptr->in_size());
 	}
@@ -108,7 +110,7 @@ public:
 
 	virtual void channel_write(channel_context* ctx, shan::object_ptr& data) {
 		std::lock_guard<std::mutex> _lock(_mutex);
-		auto sb_ptr = static_pointer_cast<shan::util::streambuf>(data);
+		auto sb_ptr = static_cast<shan::util::streambuf*>(data.get());
 		cout << "serv_ch_handler::" << "channel_write() - " << sb_ptr->in_size() << endl;
 //		ctx->close(); // 여기서 close를 하면 데이터는 전송되지 않는다.
 	}
@@ -153,7 +155,7 @@ public:
 	virtual void channel_read(channel_context* ctx, shan::object_ptr& data) {
 		std::lock_guard<std::mutex> _lock(_mutex);
 		cout << "cli_ch_handler::" << "channel_read() called" << endl;
-		auto time = static_pointer_cast<unix_time>(data);
+		auto time = static_cast<unix_time*>(data.get());
 		cout << "time:" << time->get_time() << endl;
 		ctx->close();
 	}
@@ -165,7 +167,7 @@ public:
 
 	virtual void channel_write(channel_context* ctx, shan::object_ptr& data) {
 		std::lock_guard<std::mutex> _lock(_mutex);
-		auto sb_ptr = static_pointer_cast<shan::util::streambuf>(data);
+		auto sb_ptr = static_cast<shan::util::streambuf*>(data.get());
 		cout << "cli_ch_handler::" << "channel_write() - " << sb_ptr->in_size() << endl;
 	}
 
@@ -213,7 +215,8 @@ void shan_net_test() {
 }
 
 void streambuf_test() {
-	shan::util::streambuf sb(128);
+	auto sbp = shan::util::static_pool<shan::util::streambuf>::get_object(128);
+	shan::util::streambuf& sb = *sbp;
 
 	std::ostream os(&sb);
 	os << "0-2345678901-3456789012-4567890123-5678901234-6789";
@@ -273,6 +276,8 @@ void streambuf_test() {
 	sb.prepare(50);
 	sb.commit(50);
 	std::cout << sb.in_size() << "/" << sb.alloc_size() << std::endl;
+
+	shan::util::static_pool<shan::util::streambuf>::return_object(sbp);
 }
 
 int main(int argc, const char * argv[]) {

@@ -26,7 +26,9 @@ enum class ip {
 	v4,
 	v6
 };
-	
+
+using streambuf_pool = util::static_pool<util::streambuf>;
+
 } // namespace net
 } // namespace shan
 

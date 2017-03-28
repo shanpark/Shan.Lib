@@ -11,11 +11,13 @@
 
 #include <cstring>
 #include "exception.h"
+#include "util.h"
+#include "pool.h"
 
 namespace shan {
 namespace util {
 
-class streambuf : public shan::object, public std::streambuf, public util::noncopyable {
+class streambuf : public shan::object, public std::streambuf, public noncopyable, public poolable {
 public:
 	explicit streambuf(std::size_t base_size = __def_size)
 	: _base_size(base_size), _buffer() {
@@ -23,6 +25,12 @@ public:
 		_buffer.resize(_base_size);
 		setg(&_buffer[0], &_buffer[0], &_buffer[0]);
 		setp(&_buffer[0], &_buffer[0] + _base_size);
+	}
+
+	// poolable interface. (non-virtual)
+	virtual void reset(std::size_t base_size = __def_size) noexcept { // parameters must be the same as the constructor.
+		setg(&_buffer[0], &_buffer[0], &_buffer[0]);
+		setp(&_buffer[0], &_buffer[0] + _buffer.size());
 	}
 
 	// Get the base size

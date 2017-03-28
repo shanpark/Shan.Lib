@@ -46,6 +46,7 @@
 		9067B0621E7B809500FEBD3B /* acceptor_context.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = acceptor_context.h; path = ../shan/net/acceptor_context.h; sourceTree = "<group>"; };
 		9067B0631E7B81EF00FEBD3B /* channel_context.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = channel_context.h; path = ../shan/net/channel_context.h; sourceTree = "<group>"; };
 		9067B0671E7CD32E00FEBD3B /* util.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = util.h; path = ../shan/util/util.h; sourceTree = "<group>"; };
+		9087B9781E890E7100AFD809 /* pool.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = pool.h; path = ../shan/util/pool.h; sourceTree = "<group>"; };
 		909E6C541E82B3BA005515B6 /* tcp_service.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = tcp_service.h; path = ../shan/net/tcp_service.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -123,9 +124,10 @@
 		9067B0661E7CD31200FEBD3B /* util */ = {
 			isa = PBXGroup;
 			children = (
-				903913491E88EA7400976D40 /* exception.h */,
-				903913481E88E99D00976D40 /* streambuf.h */,
 				9067B0671E7CD32E00FEBD3B /* util.h */,
+				903913491E88EA7400976D40 /* exception.h */,
+				9087B9781E890E7100AFD809 /* pool.h */,
+				903913481E88E99D00976D40 /* streambuf.h */,
 			);
 			name = util;
 			sourceTree = "<group>";

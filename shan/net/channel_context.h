@@ -18,11 +18,11 @@ class channel_context : public context {
 	friend class server;
 	friend class client;
 public:
-	channel_context(channel_ptr ch_ptr, service* svc_p)
-	: context(ch_ptr->get_io_service(), svc_p), _channel_ptr(std::move(ch_ptr)), _read_streambuf_ptr(std::make_shared<util::streambuf>()) {}
+	channel_context(channel_ptr ch_ptr, service* svc_p);
 	~channel_context() {
-		std::cout << ">>>> channel_context destroyed" << std::endl;
-	} //... 삭제 예정.
+		std::cout << ">>>> channel_context destroyed" << std::endl; //... 삭제 예정.
+		streambuf_pool::return_object(_read_streambuf_ptr);
+	}
 
 	std::size_t channel_id() { return _channel_ptr->id(); }
 
@@ -68,6 +68,10 @@ using channel_context_ptr = std::shared_ptr<channel_context>;
 
 namespace shan {
 namespace net {
+
+inline channel_context::channel_context(channel_ptr ch_ptr, service* svc_p)
+: context(ch_ptr->get_io_service(), svc_p), _channel_ptr(std::move(ch_ptr))
+, _read_streambuf_ptr(streambuf_pool::get_object(svc_p->_buffer_base_size)) {}
 
 inline void channel_context::write(object_ptr data) {
 	if (_service_p->is_tcp())

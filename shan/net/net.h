@@ -27,6 +27,7 @@
 
 #include "../object.h"
 #include "util/util.h"
+#include "util/pool.h"
 #include "util/streambuf.h"
 #include "exception.h"
 #include "constants.h"
