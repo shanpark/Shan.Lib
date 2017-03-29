@@ -11,6 +11,7 @@
 
 #include <deque>
 #include <memory>
+#include "../object.h"
 
 namespace shan {
 namespace util {

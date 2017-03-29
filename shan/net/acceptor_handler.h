@@ -16,7 +16,7 @@ class acceptor_context;
 
 class acceptor_handler : public handler {
 public:
-	virtual void channel_accepted(acceptor_context* ctx, const std::string& address, uint16_t port) {} // <-- inbound
+	virtual void channel_accepted(shan::net::acceptor_context* ctx, const std::string& address, uint16_t port) {} // <-- inbound
 };
 
 } // namespace net

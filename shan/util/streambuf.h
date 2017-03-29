@@ -10,6 +10,7 @@
 #define shan_util_streambuf_h
 
 #include <cstring>
+#include <vector>
 #include "exception.h"
 #include "util.h"
 #include "pool.h"

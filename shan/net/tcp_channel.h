@@ -14,6 +14,7 @@ namespace net {
 
 class tcp_channel : public channel {
 	friend class channel_context;
+	friend class tcp_channel_context;
 public:
 	tcp_channel(asio::ip::tcp::socket&& socket, std::size_t buffer_base_size)
 	: channel(), _socket(std::move(socket))
@@ -37,7 +38,8 @@ private:
 		}
 	}
 
-	void connect(asio::ip::tcp::endpoint ep, std::function<connect_complete_handler> connect_handler) {
+	virtual void connect(const std::string& address, uint16_t port, std::function<connect_complete_handler> connect_handler) {
+		asio::ip::tcp::endpoint ep(asio::ip::address::from_string(address), port);
 		_socket.async_connect(ep, connect_handler);
 	}
 
@@ -46,7 +48,7 @@ private:
 								std::bind(&tcp_channel::read_complete, this, std::placeholders::_1, std::placeholders::_2, read_handler));
 	}
 
-	virtual void write_stream(util::streambuf_ptr write_buf_ptr, std::function<write_complete_handler> write_handler) {
+	virtual void write_streambuf(util::streambuf_ptr write_buf_ptr, std::function<write_complete_handler> write_handler) {
 		_write_strand.post([this, write_buf_ptr, write_handler]() {
 			_write_buf_queue.push_back(write_buf_ptr);
 
@@ -89,6 +91,8 @@ private:
 	std::deque<util::streambuf_ptr> _write_buf_queue;
 	asio::io_service::strand _write_strand;
 };
+
+using tcp_channel_ptr = std::unique_ptr<tcp_channel>;
 
 } // namespace net
 } // namespace shan

@@ -18,11 +18,11 @@ class acceptor : public object {
 	friend class acceptor_context;
 public:
 	acceptor(asio::io_service& io_service, ip v)
-	: _protocol((v == ip::v6) ? asio::ip::tcp::v6() : asio::ip::tcp::v4()), _acceptor(io_service), _peer(io_service) {}
+	: _ipv((v == ip::v6) ? asio::ip::tcp::v6() : asio::ip::tcp::v4()), _acceptor(io_service), _peer(io_service) {}
 
 private:
 	void open(bool reuse_addr = true) {
-		_acceptor.open(_protocol);
+		_acceptor.open(_ipv);
 		if (reuse_addr)
 			_acceptor.set_option(asio::socket_base::reuse_address(true));
 	}
@@ -33,7 +33,7 @@ private:
 			_acceptor.close(ec);
 	}
 
-	void bind(uint16_t port) { _acceptor.bind(asio::ip::tcp::endpoint(_protocol, port)); }
+	void bind(uint16_t port) { _acceptor.bind(asio::ip::tcp::endpoint(_ipv, port)); }
 
 	void listen(int listen_backlog) { _acceptor.listen(listen_backlog); }
 
@@ -48,7 +48,7 @@ private:
 	}
 
 private:
-	asio::ip::tcp _protocol;
+	asio::ip::tcp _ipv;
 	asio::ip::tcp::acceptor _acceptor;
 
 	asio::ip::tcp::socket _peer;

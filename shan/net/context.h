@@ -25,14 +25,13 @@ protected:
 	// The state proceeds only downward, and the context that reached the last state is not reusable.
 	enum : uint8_t {
 		created = 0,
-		open,
+		open, // all
 		started, // acceptor
-		connected, // tcp_channel
-		disconnected, // tcp_channel
-		closed // acceptor
+		bound, // udp_channel
+		connected, // tcp_channel, udp_channel
+		disconnected, // tcp_channel, udp_channel
+		closed // all
 	};
-
-	asio::io_service::strand& strand() { return _strand; }
 
 	bool set_stat_if_possible(uint8_t s) {
 		if (s > _stat) { // the state can not proceed reverse direction.
@@ -42,6 +41,8 @@ protected:
 		return false;
 	}
 	uint8_t stat() { return _stat; }
+
+	asio::io_service::strand& strand() { return _strand; }
 
 protected:
 	bool _done;

@@ -17,45 +17,49 @@ class channel_context : public context {
 	friend class tcp_service;
 	friend class server;
 	friend class client;
+	friend class udp_service;
 public:
-	channel_context(channel_ptr ch_ptr, service* svc_p);
+	channel_context(asio::io_service& io_service, service* svc_p);
 	~channel_context() {
 		std::cout << ">>>> channel_context destroyed" << std::endl; //... 삭제 예정.
 		streambuf_pool::return_object(_read_streambuf_ptr);
 	}
 
-	std::size_t channel_id() { return _channel_ptr->id(); }
+	std::size_t channel_id() { return channel_p()->id(); }
 
 	void write(object_ptr data);
 	void close();
 
-private:
-	void channel_open(ip v) {
-		if (set_stat_if_possible(open))
-			_channel_ptr->open(v);
+protected:
+	virtual channel* channel_p() = 0;
+
+	void open(ip v) {
+		if (set_stat_if_possible(context::open))
+			channel_p()->open(v);
 	}
 
-	void channel_close() noexcept {
-		_channel_ptr->close();
+	void close_immediately() noexcept {
+		channel_p()->close();
 		set_stat_if_possible(closed);
 	}
 
-	void connect(asio::ip::tcp::endpoint ep, std::function<connect_complete_handler> connect_handler) {
-		static_cast<tcp_channel*>(_channel_ptr.get())->connect(ep, connect_handler);
+	void connect(const std::string& address, uint16_t port, std::function<connect_complete_handler> connect_handler) {
+		channel_p()->connect(address, port, connect_handler);
 	}
 
 	void read(std::function<read_complete_handler> read_handler) noexcept {
-		_channel_ptr->read(read_handler);
+		channel_p()->read(read_handler);
 	}
 
-	void write_stream(util::streambuf_ptr write_buf_ptr, std::function<write_complete_handler> write_handler) {
-		_channel_ptr->write_stream(write_buf_ptr, write_handler);
+	void write_streambuf(util::streambuf_ptr write_buf_ptr, std::function<write_complete_handler> write_handler) {
+		if (stat() == connected)
+			channel_p()->write_streambuf(write_buf_ptr, write_handler);
+		//... else ignore.
 	}
 
 	util::streambuf_ptr read_buf() { return _read_streambuf_ptr; }
 
-private:
-	shan::net::channel_ptr _channel_ptr;
+protected:
 	util::streambuf_ptr _read_streambuf_ptr;
 };
 
@@ -64,23 +68,21 @@ using channel_context_ptr = std::shared_ptr<channel_context>;
 } // namespace net
 } // namespace shan
 
-#include "service.h"
+#include "tcp_channel_context.h"
+#include "udp_channel_context.h"
 
 namespace shan {
 namespace net {
 
-inline channel_context::channel_context(channel_ptr ch_ptr, service* svc_p)
-: context(ch_ptr->get_io_service(), svc_p), _channel_ptr(std::move(ch_ptr))
-, _read_streambuf_ptr(streambuf_pool::get_object(svc_p->_buffer_base_size)) {}
+inline channel_context::channel_context(asio::io_service& io_service, service* svc_p)
+: context(io_service, svc_p), _read_streambuf_ptr(streambuf_pool::get_object(svc_p->_buffer_base_size)) {}
 
 inline void channel_context::write(object_ptr data) {
-	if (_service_p->is_tcp())
-		static_cast<tcp_service*>(_service_p)->write_to(channel_id(), data);
+	_service_p->write_channel(channel_id(), data);
 }
 
 inline void channel_context::close() {
-	if (_service_p->is_tcp())
-		static_cast<tcp_service*>(_service_p)->close_channel(channel_id());
+	_service_p->close_channel(channel_id());
 }
 
 } // namespace net

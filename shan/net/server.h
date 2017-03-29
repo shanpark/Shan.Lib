@@ -22,9 +22,7 @@ public:
 	: tcp_service(worker_count, buffer_base_size)
 	, _acceptor_pipeline_ptr(new acceptor_pipeline()) {}
 	
-	~server() {
-		stop();
-	}
+	virtual ~server() { stop(); }
 
 	bool add_acceptor_handler(acceptor_handler* ac_handler_p) {
 		return add_acceptor_handler(acceptor_handler_ptr(ac_handler_p));
@@ -79,7 +77,7 @@ private:
 				fire_acceptor_exception_caught(acceptor_error(error.message()));
 		}
 		else {
-			auto ch_ctx_ptr = std::make_shared<channel_context>(channel_ptr(new tcp_channel(std::move(peer), _buffer_base_size)), this);
+			auto ch_ctx_ptr = std::make_shared<tcp_channel_context>(tcp_channel_ptr(new tcp_channel(std::move(peer), _buffer_base_size)), this);
 			auto pair = std::make_pair(ch_ctx_ptr->channel_id(), ch_ctx_ptr);
 			std::pair<std::unordered_map<std::size_t, channel_context_ptr>::iterator, bool> ret;
 			try {
@@ -90,11 +88,11 @@ private:
 			}
 			if (!ret.second) { // not inserted. already exist. this is a critical error!
 				fire_channel_exception_caught(pair.second, channel_error("critical error. duplicate id for new channel. or not enough memory."));
-				pair.second->channel_close();
+				pair.second->close_immediately();
 			}
 			else { // successfully inserted
 				fire_acceptor_channel_accepted(peer_endpoint);
-				fire_channel_connected(pair.second);
+				fire_channel_connected(pair.second, std::bind(&server::read_complete, this, std::placeholders::_1, std::placeholders::_2, ch_ctx_ptr));
 			}
 		}
 

@@ -24,8 +24,10 @@ protected:
 	virtual void open(ip v) = 0;
 	virtual void close() noexcept = 0;
 
+	virtual void connect(const std::string& address, uint16_t port, std::function<connect_complete_handler> connect_handler) = 0;
+
 	virtual void read(std::function<read_complete_handler> read_handler) noexcept = 0;
-	virtual void write_stream(util::streambuf_ptr write_buf_ptr, std::function<write_complete_handler> write_handler) = 0;
+	virtual void write_streambuf(util::streambuf_ptr write_buf_ptr, std::function<write_complete_handler> write_handler) = 0;
 
 	virtual asio::io_service& get_io_service() = 0;
 };
@@ -36,5 +38,5 @@ using channel_ptr = std::unique_ptr<channel>;
 } // namespace shan
 
 #include "tcp_channel.h"
-
+#include "udp_channel.h"
 #endif /* shan_net_channel_h */
