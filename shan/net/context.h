@@ -16,7 +16,7 @@ class service;
 
 class context : public object {
 public:
-	context(asio::io_service& io_service, service* svc_p) : _done(false), _stat(created), _service_p(svc_p), _strand(io_service) {}
+	context(asio::io_service& io_service, service* svc_p) : _done(false), _stat(CREATED), _service_p(svc_p), _strand(io_service) {}
 
 	void done(bool done) { _done = done; }
 	bool done() { return _done; }
@@ -24,13 +24,13 @@ public:
 protected:
 	// The state proceeds only downward, and the context that reached the last state is not reusable.
 	enum : uint8_t {
-		created = 0,
-		open, // all
-		started, // acceptor
-		bound, // udp_channel
-		connected, // tcp_channel, udp_channel
-		disconnected, // tcp_channel, udp_channel
-		closed // all
+		CREATED = 0,
+		OPEN, // all
+		STARTED, // acceptor
+		BOUND, // udp_channel
+		CONNECTED, // tcp_channel, udp_channel
+		DISCONNECTED, // tcp_channel, udp_channel
+		CLOSED // all
 	};
 
 	bool set_stat_if_possible(uint8_t s) {

@@ -116,7 +116,7 @@ public:
 		}
 	}
 
-	virtual bool write_channel_to(std::size_t channel_id, object_ptr data, const ip_port& destination) {
+	virtual bool write_channel_to(std::size_t channel_id, const ip_port& destination, object_ptr data) {
 		try {
 			channel_context_ptr ch_ctx_ptr;
 			{
@@ -149,13 +149,13 @@ private:
 
 	void fire_channel_bound(udp_channel_context_ptr ch_ctx_ptr) {
 		ch_ctx_ptr->strand().post([this, ch_ctx_ptr]() {
-			if (!ch_ctx_ptr->set_stat_if_possible(channel_context::bound))
+			if (!ch_ctx_ptr->set_stat_if_possible(channel_context::BOUND))
 				return;
 
 			ch_ctx_ptr->done(false); // reset context to 'not done'.
 			// <-- inbound
-			auto begin = channel_handlers().rbegin();
-			auto end = channel_handlers().rend();
+			auto begin = channel_handlers().begin();
+			auto end = channel_handlers().end();
 			try {
 				for (auto it = begin ; !(ch_ctx_ptr->done()) && (it != end) ; it++)
 					(*it)->channel_bound(ch_ctx_ptr.get());
@@ -174,8 +174,8 @@ private:
 
 			auto object_ptr = std::static_pointer_cast<object>(sb_ptr);
 			// <-- inbound
-			auto begin = channel_handlers().rbegin();
-			auto end = channel_handlers().rend();
+			auto begin = channel_handlers().begin();
+			auto end = channel_handlers().end();
 			try {
 				for (auto it = begin ; !(ch_ctx_ptr->done()) && (it != end) ; it++)
 					(*it)->channel_read_from(static_cast<udp_channel_context*>(ch_ctx_ptr.get()), object_ptr, ip);

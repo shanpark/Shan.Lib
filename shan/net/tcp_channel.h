@@ -22,6 +22,8 @@ public:
 	, _write_strand(_socket.get_io_service()) {}
 
 	virtual ~tcp_channel() {
+		if (_socket.is_open())
+			_socket.close();
 		streambuf_pool::return_object(_streambuf_ptr);
 	}
 

@@ -97,7 +97,7 @@ private:
 		}
 
 		// accept next client
-		if (_acceptor_context_ptr->stat() == acceptor_context::started)
+		if (_acceptor_context_ptr->stat() == acceptor_context::STARTED)
 			_acceptor_context_ptr->accept(std::bind(&server::accept_complete, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 	}
 
@@ -106,8 +106,8 @@ private:
 			acceptor_context* ctx_p = _acceptor_context_ptr.get();
 			ctx_p->done(false); // reset context to 'not done'.
 			// <-- inbound
-			auto begin = acceptor_handlers().rbegin();
-			auto end = acceptor_handlers().rend();
+			auto begin = acceptor_handlers().begin();
+			auto end = acceptor_handlers().end();
 			try {
 				for (auto it = begin ; !(ctx_p->done()) && (it != end) ; it++)
 					(*it)->channel_accepted(ctx_p, peer_endpoint.address().to_string(), peer_endpoint.port());
@@ -122,8 +122,8 @@ private:
 			context* ctx_p = _acceptor_context_ptr.get();
 			ctx_p->done(false); // reset context to 'not done'.
 			// <-- inbound
-			auto begin = acceptor_handlers().rbegin();
-			auto end = acceptor_handlers().rend();
+			auto begin = acceptor_handlers().begin();
+			auto end = acceptor_handlers().end();
 			try {
 				for (auto it = begin ; !(ctx_p->done()) && (it != end) ; it++)
 					(*it)->exception_caught(ctx_p, e);

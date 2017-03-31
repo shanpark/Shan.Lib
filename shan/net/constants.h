@@ -27,6 +27,8 @@ enum class ip {
 	v6
 };
 
+const uint16_t ANY = 0;
+
 using streambuf_pool = util::static_pool<util::streambuf>;
 
 } // namespace net

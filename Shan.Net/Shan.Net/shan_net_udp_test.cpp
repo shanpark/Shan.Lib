@@ -87,6 +87,7 @@ public:
 		cout << "serv_ch_handler::" << "channel_read() - " << sb_ptr->in_size() << endl;
 		auto time = static_cast<unix_time*>(data.get());
 		cout << "time:" << time->get_time() << endl;
+		ctx->done(true);
 	}
 
 	virtual void channel_rdbuf_empty(tcp_channel_context* ctx) {
@@ -100,20 +101,23 @@ public:
 		auto time = static_cast<unix_time*>(data.get());
 		cout << "time:" << time->get_time() << endl;
 
-		ctx->close();
+//		userv_p->write_channel_to(ctx->channel_id(), from, data);
+		ctx->write_to(from, data);
 	}
 
 	virtual void channel_write(channel_context* ctx, shan::object_ptr& data) {
 		std::lock_guard<std::mutex> _lock(_mutex);
 		auto sb_ptr = static_cast<shan::util::streambuf*>(data.get());
 		cout << "serv_ch_handler::" << "channel_write() - " << sb_ptr->in_size() << endl;
-//		ctx->close(); // 여기서 close를 하면 데이터는 전송되지 않는다.
+		ctx->done(true);
 	}
 
 	virtual void channel_written(channel_context* ctx, std::size_t bytes_transferred, shan::util::streambuf_ptr sb_ptr) {
 		std::lock_guard<std::mutex> _lock(_mutex);
 		cout << "serv_ch_handler::" << "channel_written() - " << bytes_transferred << endl;
+
 		ctx->close();
+		userv_p->stop();
 	}
 
 	virtual void channel_disconnected(channel_context* ctx) {
@@ -121,7 +125,7 @@ public:
 		std::lock_guard<std::mutex> _lock(_mutex);
 		cout << "serv_ch_handler::" << "channel_disconnected() called:" << ++c << endl;
 
-//		userv_p->stop();
+//		userv_p->stop(); // stop이 호출되면 더 이상의 이벤트는 발생하지 않는다.
 	}
 };
 
@@ -152,7 +156,6 @@ public:
 		cout << "cli_ch_handler::" << "channel_connected(" << ctx->channel_id() << ") called" << endl;
 		auto data = std::make_shared<unix_time>(3000);
 		ctx->write(data);
-		ctx->done(true);
 	}
 
 	virtual void channel_read(tcp_channel_context* ctx, shan::object_ptr& data) {
@@ -170,6 +173,7 @@ public:
 		cout << "cli_ch_handler::" << "channel_read_from() called" << endl;
 		auto time = static_cast<unix_time*>(data.get());
 		cout << "time:" << time->get_time() << endl;
+		ctx->close();
 	}
 
 	virtual void channel_write(channel_context* ctx, shan::object_ptr& data) {
@@ -181,8 +185,6 @@ public:
 	virtual void channel_written(channel_context* ctx, std::size_t bytes_transferred, shan::util::streambuf_ptr sb_ptr) {
 		std::lock_guard<std::mutex> _lock(_mutex);
 		cout << "cli_ch_handler::" << "channel_written() called" << endl;
-
-		ctx->close();
 	}
 
 	virtual void channel_disconnected(channel_context* ctx) {
@@ -190,26 +192,27 @@ public:
 		std::lock_guard<std::mutex> _lock(_mutex);
 		cout << "cli_ch_handler::" << "channel_disconnected() called:" << ++c << endl;
 
-//		ucli_p->stop(); // stop()호출 뒤에 발생되는 이벤트는 핸들러 호출이 되지 않는다.
+		ucli_p->stop(); // stop()호출 뒤에 발생되는 이벤트는 핸들러 호출이 되지 않는다.
 	}
 };
 
 void shan_net_udp_test() {
-	shan::net::udp_service serv;
-	serv.add_channel_handler(new serv_ch_handler_u()); //
+	shan::net::udp_service serv(1);
 	serv.add_channel_handler(new channel_coder_u()); //
+	serv.add_channel_handler(new serv_ch_handler_u()); //
 	serv.start();
 	userv_p = &serv;
 
 	serv.bind_connect(4747, ip_port()); // local binding. no connect.
-
-	shan::net::udp_service cli;
+	{
+	shan::net::udp_service cli(1);
 	cli.add_channel_handler(new channel_coder_u()); //
 	cli.add_channel_handler(new cli_ch_handler_u()); // 이 핸들러는 cli가 destroy될 때 같이 해제된다.
 	cli.start();
-	ucli_p = &serv;
-	cli.bind_connect(4848, "127.0.0.1", 4747); // local binding and connect.
+	ucli_p = &cli;
+	cli.bind_connect(shan::net::ANY, "127.0.0.1", 4747); // local binding and connect.
 
 	cli.wait_stop();
+	}
 	serv.wait_stop();
 }

@@ -30,8 +30,8 @@ protected:
 
 				auto object_ptr = std::static_pointer_cast<object>(ch_ctx_ptr->read_buf());
 				// <-- inbound
-				auto begin = channel_handlers().rbegin();
-				auto end = channel_handlers().rend();
+				auto begin = channel_handlers().begin();
+				auto end = channel_handlers().end();
 				try {
 					for (auto it = begin ; !(ch_ctx_ptr->done()) && (it != end) ; it++)
 						(*it)->channel_read(static_cast<tcp_channel_context*>(ch_ctx_ptr.get()), object_ptr);
@@ -39,7 +39,7 @@ protected:
 					fire_channel_exception_caught(ch_ctx_ptr, channel_error(std::string("An exception has thrown in channel_read handler. (") + e.what() + ")"));
 				}
 
-				if (ch_ctx_ptr->stat() > channel_context::connected) // if close() called in handler...
+				if (ch_ctx_ptr->stat() > channel_context::CONNECTED) // if close() called in handler...
 					return;
 
 				if (ch_ctx_ptr->read_buf()->in_size() == before_size) // no data used.
@@ -55,8 +55,8 @@ protected:
 		ch_ctx_ptr->strand().post([this, ch_ctx_ptr]() {
 			ch_ctx_ptr->done(false); // reset context to 'not done'.
 			// <-- inbound
-			auto begin = channel_handlers().rbegin();
-			auto end = channel_handlers().rend();
+			auto begin = channel_handlers().begin();
+			auto end = channel_handlers().end();
 			try {
 				for (auto it = begin ; !(ch_ctx_ptr->done()) && (it != end) ; it++)
 					(*it)->channel_rdbuf_empty(static_cast<tcp_channel_context*>(ch_ctx_ptr.get()));

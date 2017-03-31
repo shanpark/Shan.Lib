@@ -143,13 +143,13 @@ protected:
 	
 	void fire_channel_connected(channel_context_ptr ch_ctx_ptr, std::function<read_complete_handler> read_handler) {
 		ch_ctx_ptr->strand().post([this, ch_ctx_ptr, read_handler]() {
-			if (!ch_ctx_ptr->set_stat_if_possible(channel_context::connected))
+			if (!ch_ctx_ptr->set_stat_if_possible(channel_context::CONNECTED))
 				return;
 
 			ch_ctx_ptr->done(false); // reset context to 'not done'.
 			// <-- inbound
-			auto begin = channel_handlers().rbegin();
-			auto end = channel_handlers().rend();
+			auto begin = channel_handlers().begin();
+			auto end = channel_handlers().end();
 			try {
 				for (auto it = begin ; !(ch_ctx_ptr->done()) && (it != end) ; it++)
 					(*it)->channel_connected(ch_ctx_ptr.get());
@@ -189,8 +189,8 @@ protected:
 		ch_ctx_ptr->strand().post([this, ch_ctx_ptr, bytes_transferred, sb_ptr](){
 			ch_ctx_ptr->done(false); // reset context to 'not done'.
 			// <-- inbound
-			auto begin = channel_handlers().rbegin();
-			auto end = channel_handlers().rend();
+			auto begin = channel_handlers().begin();
+			auto end = channel_handlers().end();
 			try {
 				for (auto it = begin ; !(ch_ctx_ptr->done()) && (it != end) ; it++)
 					(*it)->channel_written(ch_ctx_ptr.get(), bytes_transferred, sb_ptr);
@@ -204,13 +204,13 @@ protected:
 		ch_ctx_ptr->strand().post([this, ch_ctx_ptr](){
 			// in case you called close() yourself, the state is already disconnected,
 			// and fire_channel_disconnected() is already called so it should't be called again.
-			if (ch_ctx_ptr->stat() == channel_context::connected) {
-				ch_ctx_ptr->set_stat_if_possible(channel_context::disconnected);
+			if (ch_ctx_ptr->stat() == channel_context::CONNECTED) {
+				ch_ctx_ptr->set_stat_if_possible(channel_context::DISCONNECTED);
 
 				ch_ctx_ptr->done(false); // reset context to 'not done'.
 				// <-- inbound
-				auto begin = channel_handlers().rbegin();
-				auto end = channel_handlers().rend();
+				auto begin = channel_handlers().begin();
+				auto end = channel_handlers().end();
 				try {
 					for (auto it = begin ; !(ch_ctx_ptr->done()) && (it != end) ; it++)
 						(*it)->channel_disconnected(ch_ctx_ptr.get());
@@ -241,8 +241,8 @@ protected:
 		ch_ctx_ptr->strand().post([this, ch_ctx_ptr, e]() {
 			ch_ctx_ptr->done(false); // reset context to 'not done'.
 			// <-- inbound
-			auto begin = channel_handlers().rbegin();
-			auto end = channel_handlers().rend();
+			auto begin = channel_handlers().begin();
+			auto end = channel_handlers().end();
 			try {
 				for (auto it = begin ; !(ch_ctx_ptr->done()) && (it != end) ; it++)
 					(*it)->exception_caught(ch_ctx_ptr.get(), e);
@@ -256,8 +256,8 @@ protected:
 		ch_ctx_ptr->strand().post([this, ch_ctx_ptr, e]() {
 			ch_ctx_ptr->done(false); // reset context to 'not done'.
 			// <-- inbound
-			auto begin = channel_handlers().rbegin();
-			auto end = channel_handlers().rend();
+			auto begin = channel_handlers().begin();
+			auto end = channel_handlers().end();
 			try {
 				for (auto it = begin ; !(ch_ctx_ptr->done()) && (it != end) ; it++)
 					(*it)->exception_caught(ch_ctx_ptr.get(), e);

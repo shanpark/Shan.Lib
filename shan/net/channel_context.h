@@ -34,13 +34,13 @@ protected:
 	virtual channel* channel_p() = 0;
 
 	void open(ip v) {
-		if (set_stat_if_possible(context::open))
+		if (set_stat_if_possible(OPEN))
 			channel_p()->open(v);
 	}
 
 	void close_immediately() noexcept {
 		channel_p()->close();
-		set_stat_if_possible(closed);
+		set_stat_if_possible(CLOSED);
 	}
 
 	void connect(const std::string& address, uint16_t port, std::function<connect_complete_handler> connect_handler) {
@@ -52,7 +52,7 @@ protected:
 	}
 
 	void write_streambuf(util::streambuf_ptr write_buf_ptr, std::function<write_complete_handler> write_handler) {
-		if (stat() == connected)
+		if (stat() == CONNECTED)
 			channel_p()->write_streambuf(write_buf_ptr, write_handler);
 		//... else ignore.
 	}

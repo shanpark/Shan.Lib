@@ -214,8 +214,8 @@ void shan_net_tcp_test() {
 	serv.start(10999);
 
 	shan::net::client cli;
-	cli.add_channel_handler(new cli_ch_handler()); // 이 핸들러는 cli가 destroy될 때 같이 해제된다.
 	cli.add_channel_handler(new channel_coder()); //
+	cli.add_channel_handler(new cli_ch_handler()); // 이 핸들러는 cli가 destroy될 때 같이 해제된다.
 	cli_p = &cli;
 	cli.start();
 	cli.connect("127.0.0.1", 10999);

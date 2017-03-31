@@ -19,7 +19,7 @@ public:
 
 private:
 	void start(uint16_t port, bool reuse_addr, int backlog, const std::function<accept_complete_hander>& accept_handler) {
-		if (set_stat_if_possible(started)) {
+		if (set_stat_if_possible(STARTED)) {
 			_acceptor_ptr->open(reuse_addr);
 			_acceptor_ptr->bind(port);
 			_acceptor_ptr->listen(backlog);
@@ -29,7 +29,7 @@ private:
 
 	void stop() noexcept {
 		_acceptor_ptr->close();
-		set_stat_if_possible(closed);
+		set_stat_if_possible(CLOSED);
 	}
 
 	void accept(const std::function<accept_complete_hander>& accept_handler) {
