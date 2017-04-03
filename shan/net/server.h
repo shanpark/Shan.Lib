@@ -22,14 +22,17 @@ public:
 	: tcp_service(worker_count, buffer_base_size)
 	, _acceptor_pipeline_ptr(new acceptor_pipeline()) {}
 	
-	virtual ~server() { stop(); }
+	virtual ~server() {
+		stop();
+		_join_worker_threads(false);
+	}
 
 	bool add_acceptor_handler(acceptor_handler* ac_handler_p) {
 		return add_acceptor_handler(acceptor_handler_ptr(ac_handler_p));
 	}
 
 	bool add_acceptor_handler(acceptor_handler_ptr ac_handler_ptr) {
-		std::lock_guard<std::mutex> lock(_mutex);
+		std::lock_guard<std::mutex> lock(_shared_mutex);
 		if (!is_running()) {
 			_acceptor_pipeline_ptr->add_handler(std::move(ac_handler_ptr));
 			return true;
@@ -40,11 +43,11 @@ public:
 
 	void start(uint16_t port, bool reuse_addr = true, int listen_backlog = default_backlog, ip v = ip::v4) noexcept {
 		try {
-			std::lock_guard<std::mutex> lock(_mutex);
+			std::lock_guard<std::mutex> lock(_service_mutex);
 			if (!is_running()) {
 				service::start();
 
-				_acceptor_context_ptr = acceptor_context_ptr(new acceptor_context(acceptor_ptr(new acceptor(*_io_service_ptr, v)), this));
+				_acceptor_context_ptr = acceptor_context_ptr(new acceptor_context(acceptor_ptr(new acceptor(*_io_service_ptr, v))));
 				_acceptor_context_ptr->start(port, reuse_addr, listen_backlog, std::bind(&server::accept_complete, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 			}
 		} catch (const std::exception& e) {
@@ -53,14 +56,14 @@ public:
 	}
 
 	virtual void stop() noexcept {
-		std::lock_guard<std::mutex> lock(_mutex);
+		std::lock_guard<std::mutex> lock(_service_mutex);
 		if (is_running()) {
 			service::stop(); // no more handler will be called.
 
 			_acceptor_context_ptr->stop();
 			_acceptor_context_ptr = nullptr; // release ownership
 
-			_cv.notify_all();
+			_service_cv.notify_all();
 		}
 	}
 
@@ -79,9 +82,9 @@ private:
 		else {
 			auto ch_ctx_ptr = std::make_shared<tcp_channel_context>(tcp_channel_ptr(new tcp_channel(std::move(peer), _buffer_base_size)), this);
 			auto pair = std::make_pair(ch_ctx_ptr->channel_id(), ch_ctx_ptr);
-			std::pair<std::unordered_map<std::size_t, channel_context_ptr>::iterator, bool> ret;
+			std::pair<decltype(_channel_contexts)::iterator, bool> ret;
 			try {
-				std::lock_guard<std::mutex> lock(_mutex);
+				std::lock_guard<std::mutex> lock(_shared_mutex);
 				ret = _channel_contexts.emplace(pair);
 			} catch (...) {
 				ret.second = false;
@@ -102,7 +105,7 @@ private:
 	}
 
 	void fire_acceptor_channel_accepted(const asio::ip::tcp::endpoint& peer_endpoint) {
-		_acceptor_context_ptr->strand().post([this, peer_endpoint]() {
+		_acceptor_context_ptr->handler_strand().post([this, peer_endpoint]() {
 			acceptor_context* ctx_p = _acceptor_context_ptr.get();
 			ctx_p->done(false); // reset context to 'not done'.
 			// <-- inbound
@@ -118,7 +121,7 @@ private:
 	}
 
 	void fire_acceptor_exception_caught(const acceptor_error& e) {
-		_acceptor_context_ptr->strand().post([this, e]() {
+		_acceptor_context_ptr->handler_strand().post([this, e]() {
 			context* ctx_p = _acceptor_context_ptr.get();
 			ctx_p->done(false); // reset context to 'not done'.
 			// <-- inbound
@@ -135,7 +138,7 @@ private:
 
 private:
 	acceptor_context_ptr _acceptor_context_ptr;
-	acceptor_pipeline_ptr _acceptor_pipeline_ptr;
+	typename acceptor_pipeline::ptr _acceptor_pipeline_ptr;
 };
 
 } // namespace net

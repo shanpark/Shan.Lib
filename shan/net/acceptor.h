@@ -33,15 +33,21 @@ private:
 			_acceptor.close(ec);
 	}
 
-	void bind(uint16_t port) { _acceptor.bind(asio::ip::tcp::endpoint(_ipv, port)); }
+	void bind(uint16_t port) {
+		_acceptor.bind(asio::ip::tcp::endpoint(_ipv, port));
+	}
 
-	void listen(int listen_backlog) { _acceptor.listen(listen_backlog); }
+	void listen(int listen_backlog) {
+		_acceptor.listen(listen_backlog);
+	}
 
 	void accept(const std::function<accept_complete_hander>& accept_handler) {
 		_acceptor.async_accept(_peer, _peer_endpoint, std::bind(&acceptor::accept_complete, this, std::placeholders::_1, accept_handler));
 	}
 
-	virtual asio::io_service& get_io_service() { return _acceptor.get_io_service(); }
+	asio::io_service& io_service() {
+		return _acceptor.get_io_service();
+	}
 
 	void accept_complete(const asio::error_code& error, const std::function<accept_complete_hander>& accept_handler) {
 		accept_handler(error, _peer, _peer_endpoint);

@@ -12,11 +12,9 @@
 namespace shan {
 namespace net {
 
-class service;
-
 class context : public object {
 public:
-	context(asio::io_service& io_service, service* svc_p) : _done(false), _stat(CREATED), _service_p(svc_p), _strand(io_service) {}
+	context(asio::io_service& io_service) : _done(false), _stat(CREATED), _handler_strand(io_service) {}
 
 	void done(bool done) { _done = done; }
 	bool done() { return _done; }
@@ -42,14 +40,15 @@ protected:
 	}
 	uint8_t stat() { return _stat; }
 
-	asio::io_service::strand& strand() { return _strand; }
+	asio::io_service::strand& handler_strand() { return _handler_strand; }
 
 protected:
 	bool _done;
 	uint8_t _stat;
-	service* _service_p;
-	asio::io_service::strand _strand;
+	asio::io_service::strand _handler_strand;
 };
+
+using context_ptr = std::shared_ptr<context>;
 
 } // namespace net
 } // namespace shan

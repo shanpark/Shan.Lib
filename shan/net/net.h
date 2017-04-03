@@ -19,11 +19,12 @@
 #include <streambuf>
 #include <functional>
 #include <thread>
+#include <mutex>
+#include <condition_variable>
 #include <unordered_map>
 #include <vector>
 #include <deque>
 #include <utility>
-#include <atomic>
 
 #include "../object.h"
 #include "util/util.h"
@@ -32,10 +33,10 @@
 #include "constants.h"
 #include "exception.h"
 #include "ip_port.h"
-#include "acceptor.h"
-#include "channel.h"
 #include "handler.h"
 #include "handler_pipeline.h"
+#include "acceptor.h"
+#include "channel.h"
 #include "context.h"
 
 #endif /* shan_net_h */

@@ -17,10 +17,13 @@ public:
 	client(std::size_t worker_count = 2, std::size_t buffer_base_size = default_buffer_base_size)
 	: tcp_service(worker_count, buffer_base_size) {}
 
-	virtual ~client() { stop(); }
+	virtual ~client() {
+		stop();
+		_join_worker_threads(false);
+	}
 
 	virtual void start() noexcept {
-		std::lock_guard<std::mutex> lock(_mutex);
+		std::lock_guard<std::mutex> lock(_service_mutex);
 		if (!is_running()) {
 			service::start();
 
@@ -29,19 +32,19 @@ public:
 	}
 
 	virtual void stop() noexcept {
-		std::lock_guard<std::mutex> lock(_mutex);
+		std::lock_guard<std::mutex> lock(_service_mutex);
 		if (is_running()) {
 			service::stop(); // no more handler will be called.
 
 			_resolver_ptr = nullptr; // release ownership
-			_cv.notify_all();
+			_service_cv.notify_all();
 		}
 	}
 
 	void connect(const std::string& address, uint16_t port) {
 		if (is_running()) {
 			asio::ip::tcp::resolver::query query(address, std::to_string(port));
-			channel_context_ptr ch_ctx_ptr = std::make_shared<tcp_channel_context>(tcp_channel_ptr(new tcp_channel(asio::ip::tcp::socket(*_io_service_ptr), _buffer_base_size)), this);
+			tcp_channel_context_ptr ch_ctx_ptr = std::make_shared<tcp_channel_context>(tcp_channel_ptr(new tcp_channel(asio::ip::tcp::socket(*_io_service_ptr), _buffer_base_size)), this);
 
 			_resolver_ptr->async_resolve(query, std::bind(&client::resolve_complete, this, std::placeholders::_1, std::placeholders::_2, ch_ctx_ptr));
 		}
@@ -50,7 +53,7 @@ public:
 private:
 	virtual bool is_running() { return static_cast<bool>(_resolver_ptr); }
 
-	void resolve_complete(const asio::error_code& error, asio::ip::tcp::resolver::iterator it, channel_context_ptr ch_ctx_ptr) {
+	void resolve_complete(const asio::error_code& error, asio::ip::tcp::resolver::iterator it, tcp_channel_context_ptr ch_ctx_ptr) {
 		if (error) {
 			fire_channel_exception_caught(ch_ctx_ptr, resolver_error("fail to resolve address"));
 		}
@@ -64,9 +67,9 @@ private:
 			}
 
 			auto pair = std::make_pair(ch_ctx_ptr->channel_id(), ch_ctx_ptr);
-			std::pair<std::unordered_map<std::size_t, channel_context_ptr>::iterator, bool> ret;
+			std::pair<decltype(_channel_contexts)::iterator, bool> ret;
 			try {
-				std::lock_guard<std::mutex> lock(_mutex);
+				std::lock_guard<std::mutex> lock(_shared_mutex);
 				ret = _channel_contexts.emplace(pair);
 			} catch (...) {
 				ret.second = false;
@@ -81,7 +84,7 @@ private:
 		}
 	}
 
-	void connect_complete(const asio::error_code& error, channel_context_ptr ch_ctx_ptr) {
+	void connect_complete(const asio::error_code& error, tcp_channel_context_ptr ch_ctx_ptr) {
 		if (error)
 			fire_channel_exception_caught(ch_ctx_ptr, channel_error(error.message()));
 		else

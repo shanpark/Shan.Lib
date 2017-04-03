@@ -12,11 +12,11 @@
 namespace shan {
 namespace net {
 
-class udp_channel_context : public channel_context {
+class udp_channel_context : public channel_context<protocol::udp> {
 	friend class udp_service;
 public:
-	udp_channel_context(udp_channel_ptr ch_ptr, service* svc_p)
-	: channel_context(ch_ptr->get_io_service(), svc_p), _channel_ptr(std::move(ch_ptr)) {}
+	udp_channel_context(udp_channel_ptr ch_ptr, service<protocol::udp>* svc_p)
+	: channel_context<protocol::udp>(ch_ptr->io_service(), svc_p), _channel_ptr(std::move(ch_ptr)) {}
 
 	void write_to(const ip_port& destination, object_ptr data);
 
@@ -25,18 +25,22 @@ private:
 		_channel_ptr->bind(port, v);
 	}
 
-	void write_streambuf_to(util::streambuf_ptr write_buf_ptr, const ip_port& destination, std::function<write_complete_handler> write_handler) {
-		if ((stat() >= OPEN) && (stat() < DISCONNECTED))
-			_channel_ptr->write_streambuf_to(write_buf_ptr, destination, write_handler);
-//		else //... 뭔가 실패를 리턴해야 한다.
-//			ignore
+	bool write_streambuf_to(util::streambuf_ptr write_sb_ptr, const ip_port& destination, std::function<write_complete_handler> write_handler) {
+		if ((stat() >= OPEN) && (stat() < DISCONNECTED)) {
+			_channel_ptr->write_streambuf_to(write_sb_ptr, destination, write_handler);
+			return true;
+		}
+
+		return false;
 	}
 
-	asio::ip::udp::endpoint& get_sender() {
-		return _channel_ptr->get_sender();
+	asio::ip::udp::endpoint& sender() {
+		return _channel_ptr->sender();
 	}
 
-	virtual channel* channel_p() { return _channel_ptr.get(); }
+	virtual channel<protocol::udp>* channel_p() {
+		return _channel_ptr.get();
+	}
 
 private:
 	udp_channel_ptr _channel_ptr;

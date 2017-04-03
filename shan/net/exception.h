@@ -20,16 +20,16 @@ public:
 	explicit net_error(const char* what) : std::runtime_error(what) {}
 };
 
+class service_error : public net_error {
+public:
+	explicit service_error(const std::string& what) : net_error(what) {}
+	explicit service_error(const char* what) : net_error(what) {}
+};
+
 class acceptor_error : public net_error {
 public:
 	explicit acceptor_error(const std::string& what) : net_error(what) {}
 	explicit acceptor_error(const char* what) : net_error(what) {}
-};
-
-class buffer_error : public net_error {
-public:
-	explicit buffer_error(const std::string& what) : net_error(what) {}
-	explicit buffer_error(const char* what) : net_error(what) {}
 };
 
 class channel_error : public net_error {

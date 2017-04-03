@@ -15,7 +15,7 @@ namespace net {
 class acceptor_context : public context {
 	friend class server;
 public:
-	acceptor_context(acceptor_ptr ac_ptr, service* svc_p) : context(ac_ptr->get_io_service(), svc_p), _acceptor_ptr(std::move(ac_ptr)) {}
+	acceptor_context(acceptor_ptr ac_ptr) : context(ac_ptr->io_service()), _acceptor_ptr(std::move(ac_ptr)) {}
 
 private:
 	void start(uint16_t port, bool reuse_addr, int backlog, const std::function<accept_complete_hander>& accept_handler) {

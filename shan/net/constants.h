@@ -12,14 +12,10 @@
 namespace shan {
 namespace net {
 
-enum class protocol {
-	tcp,
-	udp
-};
-
-enum class mode {
-	server,
-	client
+class protocol {
+public:
+	class tcp {};
+	class udp {};
 };
 
 enum class ip {

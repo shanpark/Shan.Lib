@@ -24,10 +24,17 @@ public:
 	}
 
 public:
-	bool is_valid() const { return !_address.is_unspecified(); }
+	bool is_valid() const {
+		return !_address.is_unspecified();
+	}
 	
-	std::string ip() const { return _address.to_string(); };
-	uint16_t port() const { return _port; }
+	std::string ip() const {
+		return _address.to_string();
+	};
+
+	uint16_t port() const {
+		return _port;
+	}
 
 private:
 	ip_port(asio::ip::address address, uint16_t port)
@@ -36,6 +43,7 @@ private:
 		_address = address;
 		_port = port;
 	}
+	
 	asio::ip::udp::endpoint udp_endpoint() const {
 		return asio::ip::udp::endpoint(_address, _port);
 	}

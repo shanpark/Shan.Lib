@@ -12,25 +12,32 @@
 namespace shan {
 namespace net {
 
-class tcp_channel : public channel {
-	friend class channel_context;
+template<typename Protocol>
+class channel_context;
+
+class tcp_channel : public channel<protocol::tcp> {
+	friend class channel_context<protocol::tcp>;
 	friend class tcp_channel_context;
 public:
 	tcp_channel(asio::ip::tcp::socket&& socket, std::size_t buffer_base_size)
-	: channel(), _socket(std::move(socket))
-	, _streambuf_ptr(streambuf_pool::get_object(buffer_base_size))
+	: _socket(std::move(socket))
+	, _read_sb_ptr(streambuf_pool::get_object(buffer_base_size))
 	, _write_strand(_socket.get_io_service()) {}
 
 	virtual ~tcp_channel() {
 		if (_socket.is_open())
 			_socket.close();
-		streambuf_pool::return_object(_streambuf_ptr);
+		streambuf_pool::return_object(_read_sb_ptr);
 	}
 
-	virtual std::size_t id() const { return static_cast<std::size_t>(const_cast<tcp_channel*>(this)->_socket.native_handle()); }
+	virtual std::size_t id() const {
+		return static_cast<std::size_t>(const_cast<tcp_channel*>(this)->_socket.native_handle());
+	}
 
 private:
-	virtual void open(ip v) { _socket.open((v == ip::v6) ? asio::ip::tcp::v6() : asio::ip::tcp::v4()); }
+	virtual void open(ip v) {
+		_socket.open((v == ip::v6) ? asio::ip::tcp::v6() : asio::ip::tcp::v4());
+	}
 
 	virtual void close() noexcept {
 		asio::error_code ec;
@@ -46,38 +53,40 @@ private:
 	}
 
 	virtual void read(std::function<read_complete_handler> read_handler) noexcept {
-		_socket.async_read_some(asio::buffer(_streambuf_ptr->prepare(_streambuf_ptr->base_size()), _streambuf_ptr->base_size()),
+		_socket.async_read_some(asio::buffer(_read_sb_ptr->prepare(_read_sb_ptr->base_size()), _read_sb_ptr->base_size()),
 								std::bind(&tcp_channel::read_complete, this, std::placeholders::_1, std::placeholders::_2, read_handler));
 	}
 
-	virtual void write_streambuf(util::streambuf_ptr write_buf_ptr, std::function<write_complete_handler> write_handler) {
-		_write_strand.post([this, write_buf_ptr, write_handler]() {
-			_write_buf_queue.push_back(write_buf_ptr);
+	virtual void write_streambuf(util::streambuf_ptr write_sb_ptr, std::function<write_complete_handler> write_handler) {
+		_write_strand.post([this, write_sb_ptr, write_handler]() {
+			_write_buf_queue.push_back(write_sb_ptr);
 
 			if (_write_buf_queue.size() == 1)
-				asio::async_write(_socket, asio::buffer(write_buf_ptr->in_ptr(), write_buf_ptr->in_size()),
-								  std::bind(&tcp_channel::write_complete, this, std::placeholders::_1, std::placeholders::_2, write_buf_ptr, write_handler));
+				asio::async_write(_socket, asio::buffer(write_sb_ptr->in_ptr(), write_sb_ptr->in_size()),
+								  std::bind(&tcp_channel::write_complete, this, std::placeholders::_1, std::placeholders::_2, write_sb_ptr, write_handler));
 		});
 	}
 
-	virtual asio::io_service& get_io_service() { return _socket.get_io_service(); }
+	virtual asio::io_service& io_service() {
+		return _socket.get_io_service();
+	}
 
 	void read_complete(const asio::error_code& error, std::size_t bytes_transferred, std::function<read_complete_handler> read_handler) {
 		if (!error)
-			_streambuf_ptr->commit(bytes_transferred);
+			_read_sb_ptr->commit(bytes_transferred);
 
-		auto read_data = _streambuf_ptr; // send read buffer itself to higher layer to remove data copy
-		_streambuf_ptr = streambuf_pool::get_object(_streambuf_ptr->base_size()); // set a new streambuf as a read buffer.
+		auto read_data = _read_sb_ptr; // send read buffer itself to higher layer to remove data copy
+		_read_sb_ptr = streambuf_pool::get_object(_read_sb_ptr->base_size()); // set a new streambuf as a read buffer.
 
 		read_handler(error, read_data); // read_data should be returned to the pool in read_handler().
 	}
 
-	void write_complete(const asio::error_code& error, std::size_t bytes_transferred, util::streambuf_ptr write_buf_ptr, std::function<write_complete_handler> write_handler) {
-		_write_strand.post([this, error, bytes_transferred, write_buf_ptr, write_handler]() {
-			assert(_write_buf_queue.front() == write_buf_ptr);
+	void write_complete(const asio::error_code& error, std::size_t bytes_transferred, util::streambuf_ptr write_sb_ptr, std::function<write_complete_handler> write_handler) {
+		_write_strand.post([this, error, bytes_transferred, write_sb_ptr, write_handler]() {
+			assert(_write_buf_queue.front() == write_sb_ptr);
 			_write_buf_queue.pop_front();
 
-			write_handler(error, bytes_transferred, write_buf_ptr);
+			write_handler(error, bytes_transferred, write_sb_ptr);
 
 			if (!_write_buf_queue.empty()) {
 				util::streambuf_ptr next_buf_ptr = _write_buf_queue.front();
@@ -89,7 +98,7 @@ private:
 private:
 	asio::ip::tcp::socket _socket;
 
-	util::streambuf_ptr _streambuf_ptr;
+	util::streambuf_ptr _read_sb_ptr;
 	std::deque<util::streambuf_ptr> _write_buf_queue;
 	asio::io_service::strand _write_strand;
 };

@@ -16,11 +16,16 @@ template<typename Handler>
 class handler_pipeline : public object {
 public:
 	using handler_ptr = std::unique_ptr<Handler>;
+	using ptr = std::unique_ptr<handler_pipeline<Handler>>;
 
 public:
-	void add_handler(handler_ptr h) { _handlers.push_back(std::move(h)); }
+	void add_handler(handler_ptr h) {
+		_handlers.push_back(std::move(h));
+	}
 
-	const std::vector<handler_ptr>& handlers() { return _handlers; }
+	const std::vector<handler_ptr>& handlers() {
+		return _handlers;
+	}
 	
 private:
 	std::vector<handler_ptr> _handlers;
@@ -28,11 +33,21 @@ private:
 
 using acceptor_handler_ptr = handler_pipeline<acceptor_handler>::handler_ptr;
 using acceptor_pipeline = handler_pipeline<acceptor_handler>;
-using acceptor_pipeline_ptr =  std::unique_ptr<acceptor_pipeline>;
+using acceptor_pipeline_ptr =  acceptor_pipeline::ptr;
 
-using channel_handler_ptr = handler_pipeline<channel_handler>::handler_ptr;
-using channel_pipeline = handler_pipeline<channel_handler>;
-using channel_pipeline_ptr =  std::unique_ptr<channel_pipeline>;
+template<typename Protocol>
+using channel_pipeline = handler_pipeline<channel_handler<Protocol>>;
+template<typename Protocol>
+using channel_pipeline_ptr = typename handler_pipeline<channel_handler<Protocol>>::ptr;
+
+using tcp_channel_handler_ptr = handler_pipeline<tcp_channel_handler>::handler_ptr;
+using tcp_channel_pipeline = channel_pipeline<protocol::tcp>;
+using tcp_channel_pipeline_ptr = channel_pipeline_ptr<protocol::tcp>;
+
+using udp_channel_handler_ptr = handler_pipeline<udp_channel_handler>::handler_ptr;
+using udp_channel_pipeline = channel_pipeline<protocol::udp>;
+using udp_channel_pipeline_ptr = channel_pipeline_ptr<protocol::tcp>;
+
 
 } // namespace net
 } // namespace shan

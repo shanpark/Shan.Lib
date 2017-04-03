@@ -11,6 +11,8 @@
 
 #include <cstring>
 #include <vector>
+#include <limits>
+#include <algorithm>
 #include "exception.h"
 #include "util.h"
 #include "pool.h"
