@@ -14,10 +14,16 @@ namespace net {
 
 class context : public object {
 public:
-	context(asio::io_service& io_service) : _done(false), _stat(CREATED), _handler_strand(io_service) {}
+	context(asio::io_service& io_service)
+	: _done(false), _stat(CREATED), _handler_strand(io_service) {}
 
-	void done(bool done) { _done = done; }
-	bool done() { return _done; }
+	void done(bool done) {
+		_done = done;
+	}
+
+	bool done() {
+		return _done;
+	}
 
 protected:
 	// The state proceeds only downward, and the context that reached the last state is not reusable.
@@ -38,9 +44,14 @@ protected:
 		}
 		return false;
 	}
-	uint8_t stat() { return _stat; }
 
-	asio::io_service::strand& handler_strand() { return _handler_strand; }
+	uint8_t stat() {
+		return _stat;
+	}
+
+	asio::io_service::strand& handler_strand() {
+		return _handler_strand;
+	}
 
 protected:
 	bool _done;

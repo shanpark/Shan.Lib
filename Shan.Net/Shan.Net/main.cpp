@@ -13,6 +13,8 @@
 #include "util/streambuf.h"
 #include "shan_net_test.h"
 
+#include "net/net_ssl.h"
+
 void streambuf_test() {
 	auto sbp = shan::util::static_pool<shan::util::streambuf>::get_object(128);
 	shan::util::streambuf& sb = *sbp;
@@ -84,6 +86,10 @@ int main(int argc, const char * argv[]) {
 
 	std::cout << "========== TCP test ==========" << std::endl;
 	shan_net_tcp_test();
+
+	std::cout << std::endl << "========== SSL test ==========" << std::endl;
+	shan_net_ssl_test();
+
 	std::cout << std::endl << "========== UDP test ==========" << std::endl;
 	shan_net_udp_test();
 

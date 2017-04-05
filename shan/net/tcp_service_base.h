@@ -1,24 +1,24 @@
 //
-//  tcp_service.h
+//  tcp_service_base.h
 //  Shan.Net
 //
 //  Created by Sung Han Park on 2017. 3. 22..
 //  Copyright © 2017 Sung Han Park. All rights reserved.
 //
 
-#ifndef shan_net_tcp_service_h
-#define shan_net_tcp_service_h
+#ifndef shan_net_tcp_service_base_h
+#define shan_net_tcp_service_base_h
 
 namespace shan {
 namespace net {
 
-class tcp_service : public service<protocol::tcp> {
+class tcp_service_base : public service_base<protocol::tcp> {
 public:
-	tcp_service(std::size_t worker_count = 2, std::size_t buffer_base_size = default_buffer_base_size)
-	: service<protocol::tcp>(worker_count, buffer_base_size) {}
+	tcp_service_base(std::size_t worker_count = 2, std::size_t buffer_base_size = default_buffer_base_size)
+	: service_base<protocol::tcp>(worker_count, buffer_base_size) {}
 
 protected:
-	void fire_channel_connected(tcp_channel_context_ptr ch_ctx_ptr, std::function<read_complete_handler> read_handler) {
+	void fire_channel_connected(channel_context_ptr<protocol::tcp> ch_ctx_ptr, std::function<read_complete_handler> read_handler) {
 		ch_ctx_ptr->handler_strand().post([this, ch_ctx_ptr, read_handler]() {
 			if (!ch_ctx_ptr->set_stat_if_possible(channel_context<protocol::tcp>::CONNECTED))
 				return;
@@ -29,7 +29,7 @@ protected:
 			auto end = channel_handlers().end();
 			try {
 				for (auto it = begin ; !(ch_ctx_ptr->done()) && (it != end) ; it++)
-					(*it)->channel_connected(ch_ctx_ptr.get());
+					(*it)->channel_connected(static_cast<tcp_channel_context_base*>(ch_ctx_ptr.get()));
 			} catch (const std::exception& e) {
 				fire_channel_exception_caught(ch_ctx_ptr, channel_error(std::string("An exception has thrown in channel_connected handler. (") + e.what() + ")"));
 			}
@@ -53,7 +53,7 @@ protected:
 				auto end = channel_handlers().end();
 				try {
 					for (auto it = begin ; !(ch_ctx_ptr->done()) && (it != end) ; it++)
-						(*it)->channel_read(static_cast<tcp_channel_context*>(ch_ctx_ptr.get()), object_ptr);
+						(*it)->channel_read(static_cast<tcp_channel_context_base*>(ch_ctx_ptr.get()), object_ptr);
 				} catch (const std::exception& e) {
 					fire_channel_exception_caught(ch_ctx_ptr, channel_error(std::string("An exception has thrown in channel_read handler. (") + e.what() + ")"));
 				}
@@ -76,7 +76,7 @@ protected:
 				auto end = channel_handlers().end();
 				try {
 					for (auto it = begin ; !(ch_ctx_ptr->done()) && (it != end) ; it++)
-						(*it)->channel_rdbuf_empty(static_cast<tcp_channel_context*>(ch_ctx_ptr.get()));
+						(*it)->channel_rdbuf_empty(static_cast<tcp_channel_context_base*>(ch_ctx_ptr.get()));
 				} catch (const std::exception& e) {
 					fire_channel_exception_caught(ch_ctx_ptr, channel_error(std::string("An exception has thrown in channel_rdbuf_empty handler. (") + e.what() + ")"));
 				}
@@ -94,14 +94,14 @@ protected:
 			auto end = channel_handlers().end();
 			try {
 				for (auto it = begin ; !(ch_ctx_ptr->done()) && (it != end) ; it++)
-					(*it)->channel_write(static_cast<tcp_channel_context*>(ch_ctx_ptr.get()), write_obj);
+					(*it)->channel_write(static_cast<tcp_channel_context_base*>(ch_ctx_ptr.get()), write_obj);
 			} catch (const std::exception& e) {
 				fire_channel_exception_caught(ch_ctx_ptr, channel_error(std::string("An exception has thrown in channel_write handler. (") + e.what() + ")"));
 			}
 
 			util::streambuf_ptr sb_ptr = std::dynamic_pointer_cast<util::streambuf>(write_obj);
 			if (sb_ptr) {
-				bool success = ch_ctx_ptr->write_streambuf(sb_ptr, std::bind(&tcp_service::write_complete, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, ch_ctx_ptr));
+				bool success = ch_ctx_ptr->write_streambuf(sb_ptr, std::bind(&tcp_service_base::write_complete, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, ch_ctx_ptr));
 				if (!success) {
 					fire_channel_exception_caught(ch_ctx_ptr, channel_error("The status of the channel is not suitable for sending data."));
 				}
@@ -120,7 +120,7 @@ protected:
 			auto end = channel_handlers().end();
 			try {
 				for (auto it = begin ; !(ch_ctx_ptr->done()) && (it != end) ; it++)
-					(*it)->channel_written(static_cast<tcp_channel_context*>(ch_ctx_ptr.get()), bytes_transferred, sb_ptr);
+					(*it)->channel_written(static_cast<tcp_channel_context_base*>(ch_ctx_ptr.get()), bytes_transferred, sb_ptr);
 			} catch (const std::exception& e) {
 				fire_channel_exception_caught(ch_ctx_ptr, channel_error(std::string("An exception has thrown in channel_written handler. (") + e.what() + ")"));
 			}
@@ -140,7 +140,7 @@ protected:
 				auto end = channel_handlers().end();
 				try {
 					for (auto it = begin ; !(ch_ctx_ptr->done()) && (it != end) ; it++)
-						(*it)->channel_disconnected(static_cast<tcp_channel_context*>(ch_ctx_ptr.get()));
+						(*it)->channel_disconnected(static_cast<tcp_channel_context_base*>(ch_ctx_ptr.get()));
 				} catch (const std::exception& e) {
 					fire_channel_exception_caught(ch_ctx_ptr, channel_error(std::string("An exception has thrown in channel_disconnected handler. (") + e.what() + ")"));
 				}
@@ -168,7 +168,11 @@ protected:
 } // namespace net
 } // namespace shan
 
-#include "server.h"
-#include "client.h"
+#include "tcp_server.h"
+#include "tcp_client.h"
 
-#endif /* shan_net_tcp_service_h */
+#ifdef SHAN_NET_SSL_ENABLE
+#include "ssl_service.h"
+#endif
+
+#endif /* shan_net_tcp_service_base_h */

@@ -1,15 +1,15 @@
 //
-//  shan_net_test.cpp
+//  shan_net_ssl_test.cpp
 //  Shan.Net
 //
-//  Created by Sung Han Park on 2017. 3. 29..
+//  Created by Sung Han Park on 2017. 4. 5..
 //  Copyright © 2017년 Sung Han Park. All rights reserved.
 //
 
 #include <stdio.h>
 #include <iostream>
 #include <ctime>
-#include "net/net.h"
+#include "net/net_ssl.h"
 #include "util/pool.h"
 
 using namespace std;
@@ -24,12 +24,12 @@ public:
 	std::time_t _time;
 };
 
-std::mutex _mutex;
+extern std::mutex _mutex;
 
-tcp_client* cli_p;
-tcp_server* serv_p;
+ssl_client* scli_p;
+ssl_server* sserv_p;
 
-class acpt_handler : public acceptor_handler {
+class acpt_handler_s : public acceptor_handler {
 	virtual void user_event(context* ctx) override {
 		std::lock_guard<std::mutex> _lock(_mutex);
 		cout << "acpt_handler::" << "user_event() called" << endl;
@@ -46,7 +46,7 @@ class acpt_handler : public acceptor_handler {
 	}
 };
 
-class channel_coder : public tcp_channel_handler {
+class channel_coder_s : public tcp_channel_handler {
 	virtual void channel_read(tcp_channel_context_base* ctx, shan::object_ptr& data) override {
 		std::lock_guard<std::mutex> _lock(_mutex);
 		auto sb_ptr = static_cast<shan::util::streambuf*>(data.get());
@@ -78,9 +78,9 @@ class channel_coder : public tcp_channel_handler {
 	}
 };
 
-class serv_ch_handler : public tcp_channel_handler {
+class serv_ch_handler_s : public tcp_channel_handler {
 public:
-	virtual ~serv_ch_handler() {
+	virtual ~serv_ch_handler_s() {
 		std::lock_guard<std::mutex> _lock(_mutex);
 		cout << ">>>> serv_ch_handler destroyed!!!!" << endl;
 	};
@@ -96,11 +96,12 @@ public:
 	}
 
 	virtual void channel_connected(tcp_channel_context_base* ctx) override {
-		std::lock_guard<std::mutex> _lock(_mutex);
-		cout << "serv_ch_handler::" << "channel_connected(" << ctx->channel_id() << ") called" << endl;
+		{
+			std::lock_guard<std::mutex> _lock(_mutex);
+			cout << "serv_ch_handler::" << "channel_connected(" << ctx->channel_id() << ") called" << endl;
+		}
 		auto data = std::make_shared<unix_time>(3000);
 		ctx->write(data);
-		ctx->done(true);
 	}
 
 	virtual void channel_read(tcp_channel_context_base* ctx, shan::object_ptr& data) override {
@@ -114,30 +115,36 @@ public:
 	}
 
 	virtual void channel_write(tcp_channel_context_base* ctx, shan::object_ptr& data) override {
-		std::lock_guard<std::mutex> _lock(_mutex);
-		auto sb_ptr = static_cast<shan::util::streambuf*>(data.get());
-		cout << "serv_ch_handler::" << "channel_write() - " << sb_ptr->in_size() << endl;
+		{
+			std::lock_guard<std::mutex> _lock(_mutex);
+			auto sb_ptr = static_cast<shan::util::streambuf*>(data.get());
+			cout << "serv_ch_handler::" << "channel_write() - " << sb_ptr->in_size() << endl;
+		}
 //		ctx->close(); // 여기서 close를 하면 데이터는 전송되지 않는다.
 	}
 
 	virtual void channel_written(tcp_channel_context_base* ctx, std::size_t bytes_transferred, shan::util::streambuf_ptr sb_ptr) override {
-		std::lock_guard<std::mutex> _lock(_mutex);
-		cout << "serv_ch_handler::" << "channel_written() - " << bytes_transferred << endl;
-//		ctx->close();
+		{
+			std::lock_guard<std::mutex> _lock(_mutex);
+			cout << "serv_ch_handler::" << "channel_written() - " << bytes_transferred << endl;
+		}
+		ctx->close();
 	}
 
 	virtual void channel_disconnected(tcp_channel_context_base* ctx) override {
 		static int c = 0;
-		std::lock_guard<std::mutex> _lock(_mutex);
-		cout << "serv_ch_handler::" << "channel_disconnected() called:" << ++c << endl;
+		{
+			std::lock_guard<std::mutex> _lock(_mutex);
+			cout << "serv_ch_handler::" << "channel_disconnected() called:" << ++c << endl;
+		}
 
-		serv_p->stop();
+		sserv_p->stop();
 	}
 };
 
-class cli_ch_handler : public tcp_channel_handler {
+class cli_ch_handler_s : public tcp_channel_handler {
 public:
-	~cli_ch_handler() {
+	~cli_ch_handler_s() {
 		std::lock_guard<std::mutex> _lock(_mutex);
 		cout << ">>>> cli_ch_handler destroyed" << endl;
 	};
@@ -158,10 +165,12 @@ public:
 	}
 
 	virtual void channel_read(tcp_channel_context_base* ctx, shan::object_ptr& data) override {
-		std::lock_guard<std::mutex> _lock(_mutex);
-		cout << "cli_ch_handler::" << "channel_read() called" << endl;
-		auto time = static_cast<unix_time*>(data.get());
-		cout << "time:" << time->get_time() << endl;
+		{
+			std::lock_guard<std::mutex> _lock(_mutex);
+			cout << "cli_ch_handler::" << "channel_read() called" << endl;
+			auto time = static_cast<unix_time*>(data.get());
+			cout << "time:" << time->get_time() << endl;
+		}
 		ctx->close();
 	}
 
@@ -183,28 +192,55 @@ public:
 
 	virtual void channel_disconnected(tcp_channel_context_base* ctx) override {
 		static int c = 0;
-		std::lock_guard<std::mutex> _lock(_mutex);
-		cout << "cli_ch_handler::" << "channel_disconnected() called:" << ++c << endl;
-		cli_p->stop(); // stop()호출 뒤에 발생되는 이벤트는 핸들러 호출이 되지 않는다.
+		{
+			std::lock_guard<std::mutex> _lock(_mutex);
+			cout << "cli_ch_handler::" << "channel_disconnected() called:" << ++c << endl;
+		}
+		scli_p->stop(); // stop()호출 뒤에 발생되는 이벤트는 핸들러 호출이 되지 않는다.
 	}
 };
 
-void shan_net_tcp_test() {
-	shan::net::tcp_server serv;
-	serv.add_acceptor_handler(new acpt_handler()); // 이 핸들러는 serv가 destroy될 때 같이 해제된다. 걱정마라..
-	serv.add_channel_handler(new channel_coder()); //
-	serv.add_channel_handler(new serv_ch_handler()); //
-	serv_p = &serv;
-	serv.start(10999);
+std::string get_password(std::size_t max_length, ssl_password_purpose purpose) {
+	return "test";
+}
 
-	shan::net::tcp_client cli;
-	cli.add_channel_handler(new channel_coder()); //
-	cli.add_channel_handler(new cli_ch_handler()); // 이 핸들러는 cli가 destroy될 때 같이 해제된다.
-	cli_p = &cli;
+bool verify_certificate(bool preverified, X509_STORE_CTX* ctx) {
+	// 미리 기본 인증 과정을 태워서 preverified 값을 결정하는 것 같음.
+	// 따라서 상용인 경우 true로, 사설인 경우 false로 오는 것 같음...
+
+	// In this example we will simply print the certificate's subject name.
+	char subject_name[256];
+	X509* cert = X509_STORE_CTX_get_current_cert(ctx);
+	X509_NAME_oneline(X509_get_subject_name(cert), subject_name, 256);
+	std::cout << "Verifying " << subject_name << "\n";
+
+	return true; // 여기서 true를 반환하면 사설, 상용 상관없이 통과됨.
+}
+
+void shan_net_ssl_test() {
+	shan::net::ssl_server serv(TLSV12);
+	serv.set_options(DEF_OPT | SINGLE_DH_USE | NO_SSLV2);
+	serv.set_password_callback(get_password);
+	serv.use_certificate_chain_file("/Users/shanpark/Documents/Shan.Lib/Shan.Net/server.pem");
+	serv.use_private_key_file("/Users/shanpark/Documents/Shan.Lib/Shan.Net/server.pem", PEM);
+	serv.use_tmp_dh_file("/Users/shanpark/Documents/Shan.Lib/Shan.Net/dh2048.pem");
+
+	serv.add_acceptor_handler(new acpt_handler_s()); // 이 핸들러는 serv가 destroy될 때 같이 해제된다. 걱정마라..
+	serv.add_channel_handler(new channel_coder_s()); //
+	serv.add_channel_handler(new serv_ch_handler_s()); //
+	sserv_p = &serv;
+	serv.start(10999);
+	
+	shan::net::ssl_client cli(TLSV12);
+//	cli.set_verify_mode(VERIFY_PEER); // 사설 인증서는 통과 안됨.
+//	cli.set_verify_callback(verify_certificate); // 여기서 통과시키면 사설 인증서도 통과됨.
+
+	cli.add_channel_handler(new channel_coder_s()); //
+	cli.add_channel_handler(new cli_ch_handler_s()); // 이 핸들러는 cli가 destroy될 때 같이 해제된다.
+	scli_p = &cli;
 	cli.start();
 	cli.connect("127.0.0.1", 10999);
 
-
-//	serv.wait_stop();
+	serv.wait_stop();
 	cli.wait_stop();
 }

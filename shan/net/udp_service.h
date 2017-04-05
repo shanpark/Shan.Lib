@@ -12,10 +12,10 @@
 namespace shan {
 namespace net {
 
-class udp_service : public service<protocol::udp> {
+class udp_service : public service_base<protocol::udp> {
 public:
 	udp_service(std::size_t worker_count = 2, std::size_t buffer_base_size = default_buffer_base_size)
-	: service<protocol::udp>(worker_count, buffer_base_size) {}
+	: service_base<protocol::udp>(worker_count, buffer_base_size) {}
 
 	virtual ~udp_service() {
 		stop();
@@ -25,7 +25,7 @@ public:
 	virtual void start() noexcept {
 		std::lock_guard<std::mutex> lock(_service_mutex);
 		if (!is_running()) {
-			service::start();
+			service_base::start();
 			
 			_resolver_ptr = std::unique_ptr<asio::ip::udp::resolver>(new asio::ip::udp::resolver(*_io_service_ptr));
 		}
@@ -34,7 +34,7 @@ public:
 	virtual void stop() noexcept {
 		std::lock_guard<std::mutex> lock(_service_mutex);
 		if (is_running()) {
-			service::stop(); // no more handler will be called.
+			service_base::stop(); // no more handler will be called.
 			
 			_resolver_ptr = nullptr; // release ownership
 			_service_cv.notify_all();

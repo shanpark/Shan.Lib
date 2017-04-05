@@ -1,13 +1,13 @@
 //
-//  channel.h
+//  channel_base.h
 //  Shan.Net
 //
 //  Created by Sung Han Park on 2017. 3. 14..
 //  Copyright © 2017 Sung Han Park. All rights reserved.
 //
 
-#ifndef shan_net_channel_h
-#define shan_net_channel_h
+#ifndef shan_net_channel_base_h
+#define shan_net_channel_base_h
 
 namespace shan {
 namespace net {
@@ -20,11 +20,9 @@ template<typename Protocol>
 class channel_context;
 
 template<typename Protocol>
-class channel : public object {
-	friend class channel_context<Protocol>;
+class channel_base : public object {
 public:
-	using ptr = std::unique_ptr<channel>;
-
+	friend class channel_context<Protocol>;
 protected:
 	virtual std::size_t id() const = 0;
 
@@ -43,5 +41,9 @@ protected:
 } // namespace shan
 
 #include "tcp_channel.h"
+#ifdef SHAN_NET_SSL_ENABLE
+#include "ssl_channel.h"
+#endif
 #include "udp_channel.h"
-#endif /* shan_net_channel_h */
+
+#endif /* shan_net_channel_base_h */

@@ -1,28 +1,26 @@
 //
-//  server.h
+//  tcp_server.h
 //  Shan.Net
 //
 //  Created by Sung Han Park on 2017. 3. 14..
 //  Copyright © 2017 Sung Han Park. All rights reserved.
 //
 
-#ifndef shan_net_server_h
-#define shan_net_server_h
+#ifndef shan_net_tcp_server_h
+#define shan_net_tcp_server_h
 
 namespace shan {
 namespace net {
 
-class server : public tcp_service {
+class tcp_server : public tcp_service_base {
 	friend class acceptor_context;
-	
-	static const int default_backlog = asio::socket_base::max_connections;
 
 public:
-	server(std::size_t worker_count = 4, std::size_t buffer_base_size = default_buffer_base_size)
-	: tcp_service(worker_count, buffer_base_size)
+	tcp_server(std::size_t worker_count = 4, std::size_t buffer_base_size = default_buffer_base_size)
+	: tcp_service_base(worker_count, buffer_base_size)
 	, _acceptor_pipeline_ptr(new acceptor_pipeline()) {}
 	
-	virtual ~server() {
+	virtual ~tcp_server() {
 		stop();
 		_join_worker_threads(false);
 	}
@@ -41,14 +39,17 @@ public:
 		return false; // if service started, can't add handler.
 	}
 
-	void start(uint16_t port, bool reuse_addr = true, int listen_backlog = default_backlog, ip v = ip::v4) noexcept {
+	void start(uint16_t port, bool reuse_addr = true, int listen_backlog = DEFAULT_BACKLOG, ip v = ip::v4) noexcept {
 		try {
 			std::lock_guard<std::mutex> lock(_service_mutex);
 			if (!is_running()) {
-				service::start();
+				service_base::start();
 
 				_acceptor_context_ptr = acceptor_context_ptr(new acceptor_context(acceptor_ptr(new acceptor(*_io_service_ptr, v))));
-				_acceptor_context_ptr->start(port, reuse_addr, listen_backlog, std::bind(&server::accept_complete, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+				_acceptor_context_ptr->start(port, reuse_addr, listen_backlog);
+
+				_new_channel = tcp_channel_ptr(new tcp_channel(asio::ip::tcp::socket(*_io_service_ptr), _buffer_base_size));
+				_acceptor_context_ptr->accept(_new_channel->socket(), std::bind(&tcp_server::accept_complete, this, std::placeholders::_1, std::placeholders::_2));
 			}
 		} catch (const std::exception& e) {
 			fire_acceptor_exception_caught(acceptor_error(e.what()));
@@ -58,7 +59,7 @@ public:
 	virtual void stop() noexcept {
 		std::lock_guard<std::mutex> lock(_service_mutex);
 		if (is_running()) {
-			service::stop(); // no more handler will be called.
+			service_base::stop(); // no more handler will be called.
 
 			_acceptor_context_ptr->stop();
 			_acceptor_context_ptr = nullptr; // release ownership
@@ -68,11 +69,15 @@ public:
 	}
 
 private:
-	virtual bool is_running() { return static_cast<bool>(_acceptor_context_ptr); }
+	virtual bool is_running() {
+		return static_cast<bool>(_acceptor_context_ptr);
+	}
 
-	const std::vector<acceptor_pipeline::handler_ptr>& acceptor_handlers() const { return _acceptor_pipeline_ptr->handlers(); }
+	const std::vector<acceptor_pipeline::handler_ptr>& acceptor_handlers() const {
+		return _acceptor_pipeline_ptr->handlers();
+	}
 
-	void accept_complete(const asio::error_code& error, asio::ip::tcp::socket& peer, const asio::ip::tcp::endpoint& peer_endpoint) {
+	virtual void accept_complete(const asio::error_code& error, const asio::ip::tcp::endpoint& peer_endpoint) {
 		if (error) {
 			if (error == asio::error::operation_aborted)
 				return;
@@ -80,7 +85,7 @@ private:
 				fire_acceptor_exception_caught(acceptor_error(error.message()));
 		}
 		else {
-			auto ch_ctx_ptr = std::make_shared<tcp_channel_context>(tcp_channel_ptr(new tcp_channel(std::move(peer), _buffer_base_size)), this);
+			auto ch_ctx_ptr = std::make_shared<tcp_channel_context>(std::move(_new_channel), this);
 			auto pair = std::make_pair(ch_ctx_ptr->channel_id(), ch_ctx_ptr);
 			std::pair<decltype(_channel_contexts)::iterator, bool> ret;
 			try {
@@ -95,13 +100,15 @@ private:
 			}
 			else { // successfully inserted
 				fire_acceptor_channel_accepted(peer_endpoint);
-				fire_channel_connected(pair.second, std::bind(&server::read_complete, this, std::placeholders::_1, std::placeholders::_2, ch_ctx_ptr));
+				fire_channel_connected(pair.second, std::bind(&tcp_server::read_complete, this, std::placeholders::_1, std::placeholders::_2, ch_ctx_ptr));
 			}
 		}
 
 		// accept next client
-		if (_acceptor_context_ptr->stat() == acceptor_context::STARTED)
-			_acceptor_context_ptr->accept(std::bind(&server::accept_complete, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+		if (_acceptor_context_ptr->stat() == acceptor_context::STARTED) {
+			_new_channel = tcp_channel_ptr(new tcp_channel(asio::ip::tcp::socket(*_io_service_ptr), _buffer_base_size));
+			_acceptor_context_ptr->accept(_new_channel->socket(), std::bind(&tcp_server::accept_complete, this, std::placeholders::_1, std::placeholders::_2));
+		}
 	}
 
 	void fire_acceptor_channel_accepted(const asio::ip::tcp::endpoint& peer_endpoint) {
@@ -136,12 +143,14 @@ private:
 		});
 	}
 
-private:
+protected:
+	tcp_channel_ptr _new_channel;
+
 	acceptor_context_ptr _acceptor_context_ptr;
-	typename acceptor_pipeline::ptr _acceptor_pipeline_ptr;
+	acceptor_pipeline_ptr _acceptor_pipeline_ptr;
 };
 
 } // namespace net
 } // namespace shan
 
-#endif /* shan_net_server_h */
+#endif /* shan_net_tcp_server_h */

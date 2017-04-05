@@ -12,13 +12,13 @@
 namespace shan {
 namespace net {
 
-class tcp_channel_context : public channel_context<protocol::tcp> {
+class tcp_channel_context : public tcp_channel_context_base {
 public:
-	tcp_channel_context(tcp_channel_ptr ch_ptr, service<protocol::tcp>* svc_p)
+	tcp_channel_context(tcp_channel_ptr ch_ptr, service_base<protocol::tcp>* svc_p)
 	: channel_context<protocol::tcp>(ch_ptr->io_service(), svc_p), _channel_ptr(std::move(ch_ptr)) {}
 
 private:
-	virtual channel<protocol::tcp>* channel_p() {
+	virtual channel_base<protocol::tcp>* channel_p() {
 		return _channel_ptr.get();
 	}
 

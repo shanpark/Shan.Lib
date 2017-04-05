@@ -10,7 +10,11 @@
 #define shan_net_h
 
 #define ASIO_STANDALONE
-#include "asio.hpp"
+#include <asio.hpp>
+
+#ifdef SHAN_NET_SSL_ENABLE
+#include <asio/ssl.hpp>
+#endif
 
 #include <cstdint>
 #include <cassert>
@@ -36,7 +40,7 @@
 #include "handler.h"
 #include "handler_pipeline.h"
 #include "acceptor.h"
-#include "channel.h"
+#include "channel_base.h"
 #include "context.h"
 
 #endif /* shan_net_h */

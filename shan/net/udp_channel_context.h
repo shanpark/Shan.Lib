@@ -12,10 +12,10 @@
 namespace shan {
 namespace net {
 
-class udp_channel_context : public channel_context<protocol::udp> {
+class udp_channel_context : public udp_channel_context_base {
 	friend class udp_service;
 public:
-	udp_channel_context(udp_channel_ptr ch_ptr, service<protocol::udp>* svc_p)
+	udp_channel_context(udp_channel_ptr ch_ptr, service_base<protocol::udp>* svc_p)
 	: channel_context<protocol::udp>(ch_ptr->io_service(), svc_p), _channel_ptr(std::move(ch_ptr)) {}
 
 	void write_to(const ip_port& destination, object_ptr data);
@@ -38,7 +38,7 @@ private:
 		return _channel_ptr->sender();
 	}
 
-	virtual channel<protocol::udp>* channel_p() {
+	virtual channel_base<protocol::udp>* channel_p() {
 		return _channel_ptr.get();
 	}
 
@@ -51,7 +51,7 @@ using udp_channel_context_ptr = std::shared_ptr<udp_channel_context>;
 } // namespace net
 } // namespace shan
 
-#include "service.h"
+#include "service_base.h"
 
 namespace shan {
 namespace net {

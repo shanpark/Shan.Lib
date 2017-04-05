@@ -44,6 +44,12 @@ public:
 	explicit resolver_error(const char* what) : net_error(what) {}
 };
 
+class ssl_error : public net_error {
+public:
+	explicit ssl_error(const std::string& what) : net_error(what) {}
+	explicit ssl_error(const char* what) : net_error(what) {}
+};
+
 } // namespace net
 } // namespace shan
 

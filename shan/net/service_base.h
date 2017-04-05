@@ -1,24 +1,24 @@
 //
-//  service.h
+//  service_base.h
 //  Shan.Net
 //
 //  Created by Sung Han Park on 2017. 3. 15..
 //  Copyright © 2017 Sung Han Park. All rights reserved.
 //
 
-#ifndef shan_net_service_h
-#define shan_net_service_h
+#ifndef shan_net_service_base_h
+#define shan_net_service_base_h
 
 namespace shan {
 namespace net {
 
 template<typename Protocol>
-class service : public object {
+class service_base : public object {
 	friend class channel_context<Protocol>;
 protected:
 	static const int default_buffer_base_size = 4096;
 
-	service(std::size_t worker_count, std::size_t buffer_base_size = default_buffer_base_size)
+	service_base(std::size_t worker_count, std::size_t buffer_base_size = default_buffer_base_size)
 	: _worker_count(worker_count), _buffer_base_size(buffer_base_size)
     , _channel_pipeline_ptr(new channel_pipeline<Protocol>()) {}
 
@@ -131,7 +131,7 @@ protected:
 			fire_channel_read(ch_ctx_ptr, sb_ptr);
 		}
 
-		ch_ctx_ptr->read(std::bind(&service::read_complete, this, std::placeholders::_1, std::placeholders::_2, ch_ctx_ptr));
+		ch_ctx_ptr->read(std::bind(&service_base::read_complete, this, std::placeholders::_1, std::placeholders::_2, ch_ctx_ptr));
 	}
 
 	void write_complete(const asio::error_code& error, std::size_t bytes_transferred, util::streambuf_ptr sb_ptr, channel_context_ptr<Protocol> ch_ctx_ptr) {
@@ -220,7 +220,7 @@ protected:
 } // namespace net
 } // namespace shan
 
-#include "tcp_service.h"
+#include "tcp_service_base.h"
 #include "udp_service.h"
 
-#endif /* shan_net_service_h */
+#endif /* shan_net_service_base_h */

@@ -15,7 +15,7 @@ namespace net {
 template<typename Protocol>
 class channel_context;
 
-class udp_channel : public channel<protocol::udp> {
+class udp_channel : public channel_base<protocol::udp> {
 	friend class channel_context<protocol::udp>;
 	friend class udp_channel_context;
 public:

@@ -12,13 +12,13 @@
 namespace shan {
 namespace net {
 
-using accept_complete_hander = void(const asio::error_code& error, asio::ip::tcp::socket& peer, const asio::ip::tcp::endpoint& peer_endpoint);
+using accept_complete_hander = void(const asio::error_code& error, const asio::ip::tcp::endpoint& peer_endpoint);
 
 class acceptor : public object {
 	friend class acceptor_context;
 public:
 	acceptor(asio::io_service& io_service, ip v)
-	: _ipv((v == ip::v6) ? asio::ip::tcp::v6() : asio::ip::tcp::v4()), _acceptor(io_service), _peer(io_service) {}
+	: _ipv((v == ip::v6) ? asio::ip::tcp::v6() : asio::ip::tcp::v4()), _acceptor(io_service) {}
 
 private:
 	void open(bool reuse_addr = true) {
@@ -41,8 +41,8 @@ private:
 		_acceptor.listen(listen_backlog);
 	}
 
-	void accept(const std::function<accept_complete_hander>& accept_handler) {
-		_acceptor.async_accept(_peer, _peer_endpoint, std::bind(&acceptor::accept_complete, this, std::placeholders::_1, accept_handler));
+	void accept(asio::ip::tcp::socket& peer, const std::function<accept_complete_hander>& accept_handler) {
+		_acceptor.async_accept(peer, _peer_endpoint, std::bind(&acceptor::accept_complete, this, std::placeholders::_1, accept_handler));
 	}
 
 	asio::io_service& io_service() {
@@ -50,14 +50,12 @@ private:
 	}
 
 	void accept_complete(const asio::error_code& error, const std::function<accept_complete_hander>& accept_handler) {
-		accept_handler(error, _peer, _peer_endpoint);
+		accept_handler(error, _peer_endpoint);
 	}
 
 private:
 	asio::ip::tcp _ipv;
 	asio::ip::tcp::acceptor _acceptor;
-
-	asio::ip::tcp::socket _peer;
 	asio::ip::tcp::endpoint _peer_endpoint;
 };
 

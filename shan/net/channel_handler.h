@@ -12,7 +12,12 @@
 namespace shan {
 namespace net {
 
-class tcp_channel_context;
+template<typename Protocol>
+class channel_context;
+
+using tcp_channel_context_base = channel_context<protocol::tcp>;
+using udp_channel_context_base = channel_context<protocol::udp>;
+
 class udp_channel_context;
 
 template<typename Protocol>
@@ -21,12 +26,12 @@ class channel_handler; // no body implementation.
 template<>
 class channel_handler<protocol::tcp> : public handler {
 public:
-	virtual void channel_connected(shan::net::tcp_channel_context* ctx) {} // <-- inbound
-	virtual void channel_read(shan::net::tcp_channel_context* ctx, shan::object_ptr& data) {} // <-- inbound
-	virtual void channel_rdbuf_empty(shan::net::tcp_channel_context* ctx) {} // <-- inbound
-	virtual void channel_write(shan::net::tcp_channel_context* ctx, shan::object_ptr& data) {} // outbound -->
-	virtual void channel_written(shan::net::tcp_channel_context* ctx, std::size_t bytes_transferred, shan::util::streambuf_ptr sb_ptr) {} // <-- inbound
-	virtual void channel_disconnected(shan::net::tcp_channel_context* ctx) {} // <-- inbound
+	virtual void channel_connected(shan::net::tcp_channel_context_base* ctx) {} // <-- inbound
+	virtual void channel_read(shan::net::tcp_channel_context_base* ctx, shan::object_ptr& data) {} // <-- inbound
+	virtual void channel_rdbuf_empty(shan::net::tcp_channel_context_base* ctx) {} // <-- inbound
+	virtual void channel_write(shan::net::tcp_channel_context_base* ctx, shan::object_ptr& data) {} // outbound -->
+	virtual void channel_written(shan::net::tcp_channel_context_base* ctx, std::size_t bytes_transferred, shan::util::streambuf_ptr sb_ptr) {} // <-- inbound
+	virtual void channel_disconnected(shan::net::tcp_channel_context_base* ctx) {} // <-- inbound
 };
 
 template<>

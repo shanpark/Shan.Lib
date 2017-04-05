@@ -13,33 +13,38 @@ namespace shan {
 namespace net {
 
 template<typename Protocol>
-class service;
+class service_base;
 
 template<typename Protocol>
 class channel_context : public context {
-	friend class service<Protocol>;
-	friend class tcp_service;
-	friend class server;
-	friend class client;
+	friend class service_base<Protocol>;
+	friend class tcp_service_base;
+	friend class tcp_server;
+	friend class tcp_client;
+	friend class ssl_server;
+	friend class ssl_client;
 	friend class udp_service;
 
 public:
 	using ptr = std::shared_ptr<channel_context<Protocol>>;
 
 public:
-	channel_context(asio::io_service& io_service, service<Protocol>* svc_p);
+	channel_context(asio::io_service& io_service, service_base<Protocol>* svc_p);
+
 	~channel_context() {
 		std::cout << ">>>> channel_context destroyed" << std::endl; //... 삭제 예정.
 		streambuf_pool::return_object(_read_sb_ptr);
 	}
 
-	std::size_t channel_id() { return channel_p()->id(); }
+	std::size_t channel_id() {
+		return channel_p()->id();
+	}
 
 	void write(object_ptr data);
 	void close();
 
 protected:
-	virtual channel<Protocol>* channel_p() = 0;
+	virtual channel_base<Protocol>* channel_p() = 0;
 
 	void open(ip v) {
 		if (set_stat_if_possible(OPEN))
@@ -73,7 +78,7 @@ protected:
 	}
 
 protected:
-	service<Protocol>* _service_p;
+	service_base<Protocol>* _service_p;
 	util::streambuf_ptr _read_sb_ptr;
 };
 
@@ -84,13 +89,16 @@ using channel_context_ptr = typename channel_context<Protocol>::ptr;
 } // namespace shan
 
 #include "tcp_channel_context.h"
+#ifdef SHAN_NET_SSL_ENABLE
+#include "ssl_channel_context.h"
+#endif
 #include "udp_channel_context.h"
 
 namespace shan {
 namespace net {
 
 template<typename Protocol>
-inline channel_context<Protocol>::channel_context(asio::io_service& io_service, service<Protocol>* svc_p)
+inline channel_context<Protocol>::channel_context(asio::io_service& io_service, service_base<Protocol>* svc_p)
 : context(io_service), _service_p(svc_p), _read_sb_ptr(streambuf_pool::get_object(svc_p->_buffer_base_size)) {}
 
 template<typename Protocol>
