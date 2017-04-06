@@ -69,12 +69,12 @@ public:
 		cout << ">>>> serv_ch_handler destroyed!!!!" << endl;
 	};
 
-	virtual void user_event(context* ctx) override {
+	virtual void user_event(context_base* ctx) override {
 		std::lock_guard<std::mutex> _lock(_mutex);
 		cout << "serv_ch_handler::" << "user_event() called" << endl;
 	}
 
-	virtual void exception_caught(context* ctx, const std::exception& e) override {
+	virtual void exception_caught(context_base* ctx, const std::exception& e) override {
 		std::lock_guard<std::mutex> _lock(_mutex);
 		cout << "serv_ch_handler::" << "exception_caught() - " << e.what() << endl;
 	}
@@ -107,11 +107,15 @@ public:
 	}
 
 	virtual void channel_written(udp_channel_context* ctx, std::size_t bytes_transferred, shan::util::streambuf_ptr sb_ptr) override {
+		static int c = 0;
 		std::lock_guard<std::mutex> _lock(_mutex);
 		cout << "serv_ch_handler::" << "channel_written() - " << bytes_transferred << endl;
+		c++;
 
-		ctx->close();
-		userv_p->stop();
+		if (c == 2) {
+			ctx->close();
+			userv_p->stop();
+		}
 	}
 
 	virtual void channel_disconnected(udp_channel_context* ctx) override {
@@ -130,12 +134,12 @@ public:
 		cout << ">>>> cli_ch_handler destroyed" << endl;
 	};
 
-	virtual void user_event(context* ctx) override {
+	virtual void user_event(context_base* ctx) override {
 		std::lock_guard<std::mutex> _lock(_mutex);
 		cout << "cli_ch_handler::" << "user_event() called" << endl;
 	}
 
-	virtual void exception_caught(context* ctx, const std::exception& e) override {
+	virtual void exception_caught(context_base* ctx, const std::exception& e) override {
 		std::lock_guard<std::mutex> _lock(_mutex);
 		cout << "cli_ch_handler::" << "exception_caught() - " << e.what() << endl;
 	}
@@ -181,22 +185,34 @@ public:
 };
 
 void shan_net_udp_test() {
-	shan::net::udp_service serv(1);
+	shan::net::udp_service serv;
 	serv.add_channel_handler(new channel_coder_u()); //
 	serv.add_channel_handler(new serv_ch_handler_u()); //
 	serv.start();
 	userv_p = &serv;
 
-	serv.bind_connect(4747, ip_port()); // local binding. no connect.
-	{
-	shan::net::udp_service cli(1);
-	cli.add_channel_handler(new channel_coder_u()); //
-	cli.add_channel_handler(new cli_ch_handler_u()); // 이 핸들러는 cli가 destroy될 때 같이 해제된다.
-	cli.start();
-	ucli_p = &cli;
-	cli.bind_connect(shan::net::ANY, "127.0.0.1", 4747); // local binding and connect.
+	serv.bind_connect(4747 /*, ip_port()*/ ); // local binding. no connect.
 
-	cli.wait_stop();
+	{
+		shan::net::udp_service cli;
+		cli.add_channel_handler(new channel_coder_u()); //
+		cli.add_channel_handler(new cli_ch_handler_u()); // 이 핸들러는 cli가 destroy될 때 같이 해제된다.
+		cli.start();
+		ucli_p = &cli;
+		cli.bind_connect(shan::net::ANY, "127.0.0.1", 4747); // local binding and connect.
+
+		cli.wait_stop();
 	}
+	{
+		shan::net::udp_service cli;
+		cli.add_channel_handler(new channel_coder_u()); //
+		cli.add_channel_handler(new cli_ch_handler_u()); // 이 핸들러는 cli가 destroy될 때 같이 해제된다.
+		cli.start();
+		ucli_p = &cli;
+		cli.bind_connect(shan::net::ANY, "127.0.0.1", 4747); // local binding and connect.
+
+		cli.wait_stop();
+	}
+
 	serv.wait_stop();
 }

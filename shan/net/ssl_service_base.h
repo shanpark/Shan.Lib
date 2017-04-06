@@ -1,20 +1,22 @@
 //
-//  ssl_service.h
+//  ssl_service_base.h
 //  Shan.Net
 //
 //  Created by Sung Han Park on 2017. 4. 4..
 //  Copyright © 2017 Sung Han Park. All rights reserved.
 //
 
-#ifndef shan_net_ssl_service_h
-#define shan_net_ssl_service_h
+#ifndef shan_net_ssl_service_base_h
+#define shan_net_ssl_service_base_h
 
 namespace shan {
 namespace net {
 
-class ssl_service : public object {
+class ssl_service_base : public object {
 public:
-	ssl_service(ssl_method method) : _ssl_context(static_cast<asio::ssl::context::method>(method)) {}
+	ssl_service_base(ssl_method method) : _ssl_context(static_cast<asio::ssl::context::method>(method)) {}
+
+	virtual bool is_running() = 0;
 
 	/**
 	 Clear options on the context.
@@ -27,6 +29,8 @@ public:
 	 */
 	void clear_options(ssl_option options) {
 		try {
+			if (is_running())
+				throw ssl_error("ssl service is already running.");
 			_ssl_context.clear_options(options);
 		} catch (const std::exception& e) {
 			throw ssl_error(std::string("clear_options() failed. (") + e.what() + ")");
@@ -44,6 +48,8 @@ public:
 	 */
 	void set_options(ssl_option options) {
 		try {
+			if (is_running())
+				throw ssl_error("ssl service is already running.");
 			_ssl_context.set_options(options);
 		} catch (const std::exception& e) {
 			throw ssl_error(std::string("set_options() failed. (") + e.what() + ")");
@@ -61,6 +67,8 @@ public:
 	 */
 	void set_verify_mode(ssl_verify_mode v) {
 		try {
+			if (is_running())
+				throw ssl_error("ssl service is already running.");
 			_ssl_context.set_verify_mode(v);
 		} catch (const std::exception& e) {
 			throw ssl_error(std::string("set_verify_mode() failed. (") + e.what() + ")");
@@ -77,6 +85,8 @@ public:
 	 */
 	void set_verify_depth(int depth) {
 		try {
+			if (is_running())
+				throw ssl_error("ssl service is already running.");
 			_ssl_context.set_verify_depth(depth);
 		} catch (const std::exception& e) {
 			throw ssl_error(std::string("set_verify_depth() failed. (") + e.what() + ")");
@@ -94,6 +104,8 @@ public:
 	 */
 	void load_verify_file(const std::string& filename) {
 		try {
+			if (is_running())
+				throw ssl_error("ssl service is already running.");
 			_ssl_context.load_verify_file(filename);
 		} catch (const std::exception& e) {
 			throw ssl_error(std::string("load_verify_file() failed. (") + e.what() + ")");
@@ -111,6 +123,8 @@ public:
 	 */
 	void add_certificate_authority(const char* ca, int ca_len) {
 		try {
+			if (is_running())
+				throw ssl_error("ssl service is already running.");
 			_ssl_context.add_certificate_authority(asio::buffer(ca, ca_len));
 		} catch (const std::exception& e) {
 			throw ssl_error(std::string("add_certificate_authority() failed. (") + e.what() + ")");
@@ -127,6 +141,8 @@ public:
 	 */
 	void set_default_verify_paths() {
 		try {
+			if (is_running())
+				throw ssl_error("ssl service is already running.");
 			_ssl_context.set_default_verify_paths();
 		} catch (const std::exception& e) {
 			throw ssl_error(std::string("set_default_verify_paths() failed. (") + e.what() + ")");
@@ -146,6 +162,8 @@ public:
 	 */
 	void add_verify_path(const std::string& path) {
 		try {
+			if (is_running())
+				throw ssl_error("ssl service is already running.");
 			_ssl_context.add_verify_path(path);
 		} catch (const std::exception& e) {
 			throw ssl_error(std::string("add_verify_path() failed. (") + e.what() + ")");
@@ -166,6 +184,8 @@ public:
 	 */
 	void use_certificate(const uint8_t* cert, std::size_t cert_len, ssl_file_format format) {
 		try {
+			if (is_running())
+				throw ssl_error("ssl service is already running.");
 			_ssl_context.use_certificate(asio::buffer(cert, cert_len), static_cast<asio::ssl::context::file_format>(format));
 		} catch (const std::exception& e) {
 			throw ssl_error(std::string("use_certificate() failed. (") + e.what() + ")");
@@ -184,6 +204,8 @@ public:
 	 */
 	void use_certificate_file(const std::string& filename, ssl_file_format format) {
 		try {
+			if (is_running())
+				throw ssl_error("ssl service is already running.");
 			_ssl_context.use_certificate_file(filename, static_cast<asio::ssl::context::file_format>(format));
 		} catch (const std::exception& e) {
 			throw ssl_error(std::string("use_certificate_file() failed. (") + e.what() + ")");
@@ -203,6 +225,8 @@ public:
 	 */
 	void use_certificate_chain(const uint8_t* chain, std::size_t chain_len) {
 		try {
+			if (is_running())
+				throw ssl_error("ssl service is already running.");
 			_ssl_context.use_certificate_chain(asio::buffer(chain, chain_len));
 		} catch (const std::exception& e) {
 			throw ssl_error(std::string("use_certificate_chain() failed. (") + e.what() + ")");
@@ -220,6 +244,8 @@ public:
 	 */
 	void use_certificate_chain_file(const std::string& filename) {
 		try {
+			if (is_running())
+				throw ssl_error("ssl service is already running.");
 			_ssl_context.use_certificate_chain_file(filename);
 		} catch (const std::exception& e) {
 			throw ssl_error(std::string("use_certificate_chain_file() failed. (") + e.what() + ")");
@@ -240,6 +266,8 @@ public:
 	 */
 	void use_private_key(const uint8_t* private_key, std::size_t private_key_len, ssl_file_format format) {
 		try {
+			if (is_running())
+				throw ssl_error("ssl service is already running.");
 			_ssl_context.use_private_key(asio::buffer(private_key, private_key_len), static_cast<asio::ssl::context::file_format>(format));
 		} catch (const std::exception& e) {
 			throw ssl_error(std::string("use_private_key() failed. (") + e.what() + ")");
@@ -258,6 +286,8 @@ public:
 	 */
 	void use_private_key_file(const std::string& filename, ssl_file_format format) {
 		try {
+			if (is_running())
+				throw ssl_error("ssl service is already running.");
 			_ssl_context.use_private_key_file(filename, static_cast<asio::ssl::context::file_format>(format));
 		} catch (const std::exception& e) {
 			throw ssl_error(std::string("use_private_key_file() failed. (") + e.what() + ")");
@@ -279,6 +309,8 @@ public:
 	 */
 	void use_rsa_private_key(const uint8_t* private_key, std::size_t private_key_len, ssl_file_format format) {
 		try {
+			if (is_running())
+				throw ssl_error("ssl service is already running.");
 			_ssl_context.use_rsa_private_key(asio::buffer(private_key, private_key_len), static_cast<asio::ssl::context::file_format>(format));
 		} catch (const std::exception& e) {
 			throw ssl_error(std::string("use_rsa_private_key() failed. (") + e.what() + ")");
@@ -298,6 +330,8 @@ public:
 	 */
 	void use_rsa_private_key_file(const std::string& filename, ssl_file_format format) {
 		try {
+			if (is_running())
+				throw ssl_error("ssl service is already running.");
 			_ssl_context.use_rsa_private_key_file(filename, static_cast<asio::ssl::context::file_format>(format));
 		} catch (const std::exception& e) {
 			throw ssl_error(std::string("use_rsa_private_key_file() failed. (") + e.what() + ")");
@@ -318,6 +352,8 @@ public:
 	 */
 	void use_tmp_dh(const uint8_t* dh, std::size_t dh_len) {
 		try {
+			if (is_running())
+				throw ssl_error("ssl service is already running.");
 			_ssl_context.use_tmp_dh(asio::buffer(dh, dh_len));
 		} catch (const std::exception& e) {
 			throw ssl_error(std::string("use_tmp_dh() failed. (") + e.what() + ")");
@@ -335,6 +371,8 @@ public:
 	 */
 	void use_tmp_dh_file(const std::string& filename) {
 		try {
+			if (is_running())
+				throw ssl_error("ssl service is already running.");
 			_ssl_context.use_tmp_dh_file(filename);
 		} catch (const std::exception& e) {
 			throw ssl_error(std::string("use_tmp_dh_file() failed. (") + e.what() + ")");
@@ -358,6 +396,8 @@ public:
 	 */
 	void set_verify_callback(std::function<verify_callback> verify_cb) {
 		try {
+			if (is_running())
+				throw ssl_error("ssl service is already running.");
 			_ssl_context.set_verify_callback([verify_cb](bool preverified, asio::ssl::verify_context& ctx){
 				return verify_cb(preverified, ctx.native_handle());
 			});
@@ -382,6 +422,8 @@ public:
 	 */
 	void set_password_callback(std::function<password_callback> pw_cb) {
 		try {
+			if (is_running())
+				throw ssl_error("ssl service is already running.");
 			_ssl_context.set_password_callback([pw_cb](std::size_t max_length, asio::ssl::context::password_purpose purpose){
 				return pw_cb(max_length, static_cast<ssl_password_purpose>(purpose));
 			});
@@ -400,4 +442,4 @@ protected:
 #include "ssl_server.h"
 #include "ssl_client.h"
 
-#endif /* shan_net_ssl_service_h */
+#endif /* shan_net_ssl_service_base_h */

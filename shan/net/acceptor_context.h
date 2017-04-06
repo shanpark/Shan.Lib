@@ -12,11 +12,12 @@
 namespace shan {
 namespace net {
 
-class acceptor_context : public context {
+class acceptor_context : public context_base {
+	friend class tcp_server_base;
 	friend class tcp_server;
 	friend class ssl_server;
 public:
-	acceptor_context(acceptor_ptr ac_ptr) : context(ac_ptr->io_service()), _acceptor_ptr(std::move(ac_ptr)) {}
+	acceptor_context(acceptor_ptr ac_ptr) : context_base(ac_ptr->io_service()), _acceptor_ptr(std::move(ac_ptr)) {}
 
 private:
 	void start(uint16_t port, bool reuse_addr, int backlog) {

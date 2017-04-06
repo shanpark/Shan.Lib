@@ -12,142 +12,30 @@
 namespace shan {
 namespace net {
 
-class tcp_server : public tcp_service_base {
-	friend class acceptor_context;
-
+class tcp_server : public tcp_server_base {
 public:
 	tcp_server(std::size_t worker_count = 4, std::size_t buffer_base_size = default_buffer_base_size)
-	: tcp_service_base(worker_count, buffer_base_size)
-	, _acceptor_pipeline_ptr(new acceptor_pipeline()) {}
-	
-	virtual ~tcp_server() {
-		stop();
-		_join_worker_threads(false);
+	: tcp_server_base(worker_count, buffer_base_size) {}
+
+private:
+	virtual void prepare_channel_for_next_accept() {
+		_new_channel = tcp_channel_ptr(new tcp_channel(asio::ip::tcp::socket(*_io_service_ptr), _buffer_base_size));
 	}
 
-	bool add_acceptor_handler(acceptor_handler* ac_handler_p) {
-		return add_acceptor_handler(acceptor_handler_ptr(ac_handler_p));
+	virtual asio::ip::tcp::socket& socket() { // return the asio socket of the prepared channel.
+		return _new_channel->socket();
 	}
 
-	bool add_acceptor_handler(acceptor_handler_ptr ac_handler_ptr) {
-		std::lock_guard<std::mutex> lock(_shared_mutex);
-		if (!is_running()) {
-			_acceptor_pipeline_ptr->add_handler(std::move(ac_handler_ptr));
-			return true;
-		}
-
-		return false; // if service started, can't add handler.
+	virtual tcp_channel_context_base_ptr new_channel_context() {
+		return std::make_shared<tcp_channel_context>(std::move(_new_channel), this);
 	}
 
-	void start(uint16_t port, bool reuse_addr = true, int listen_backlog = DEFAULT_BACKLOG, ip v = ip::v4) noexcept {
-		try {
-			std::lock_guard<std::mutex> lock(_service_mutex);
-			if (!is_running()) {
-				service_base::start();
-
-				_acceptor_context_ptr = acceptor_context_ptr(new acceptor_context(acceptor_ptr(new acceptor(*_io_service_ptr, v))));
-				_acceptor_context_ptr->start(port, reuse_addr, listen_backlog);
-
-				_new_channel = tcp_channel_ptr(new tcp_channel(asio::ip::tcp::socket(*_io_service_ptr), _buffer_base_size));
-				_acceptor_context_ptr->accept(_new_channel->socket(), std::bind(&tcp_server::accept_complete, this, std::placeholders::_1, std::placeholders::_2));
-			}
-		} catch (const std::exception& e) {
-			fire_acceptor_exception_caught(acceptor_error(e.what()));
-		}
-	}
-
-	virtual void stop() noexcept {
-		std::lock_guard<std::mutex> lock(_service_mutex);
-		if (is_running()) {
-			service_base::stop(); // no more handler will be called.
-
-			_acceptor_context_ptr->stop();
-			_acceptor_context_ptr = nullptr; // release ownership
-
-			_service_cv.notify_all();
-		}
+	virtual void new_channel_accepted(tcp_channel_context_base_ptr tcp_ch_ctx_base_ptr) {
+		fire_channel_connected(tcp_ch_ctx_base_ptr, std::bind(&tcp_server::read_complete, this, std::placeholders::_1, std::placeholders::_2, tcp_ch_ctx_base_ptr));
 	}
 
 private:
-	virtual bool is_running() {
-		return static_cast<bool>(_acceptor_context_ptr);
-	}
-
-	const std::vector<acceptor_pipeline::handler_ptr>& acceptor_handlers() const {
-		return _acceptor_pipeline_ptr->handlers();
-	}
-
-	virtual void accept_complete(const asio::error_code& error, const asio::ip::tcp::endpoint& peer_endpoint) {
-		if (error) {
-			if (error == asio::error::operation_aborted)
-				return;
-			else
-				fire_acceptor_exception_caught(acceptor_error(error.message()));
-		}
-		else {
-			auto ch_ctx_ptr = std::make_shared<tcp_channel_context>(std::move(_new_channel), this);
-			auto pair = std::make_pair(ch_ctx_ptr->channel_id(), ch_ctx_ptr);
-			std::pair<decltype(_channel_contexts)::iterator, bool> ret;
-			try {
-				std::lock_guard<std::mutex> lock(_shared_mutex);
-				ret = _channel_contexts.emplace(pair);
-			} catch (...) {
-				ret.second = false;
-			}
-			if (!ret.second) { // not inserted. already exist. this is a critical error!
-				fire_channel_exception_caught(pair.second, channel_error("critical error. duplicate id for new channel. or not enough memory."));
-				pair.second->close_immediately();
-			}
-			else { // successfully inserted
-				fire_acceptor_channel_accepted(peer_endpoint);
-				fire_channel_connected(pair.second, std::bind(&tcp_server::read_complete, this, std::placeholders::_1, std::placeholders::_2, ch_ctx_ptr));
-			}
-		}
-
-		// accept next client
-		if (_acceptor_context_ptr->stat() == acceptor_context::STARTED) {
-			_new_channel = tcp_channel_ptr(new tcp_channel(asio::ip::tcp::socket(*_io_service_ptr), _buffer_base_size));
-			_acceptor_context_ptr->accept(_new_channel->socket(), std::bind(&tcp_server::accept_complete, this, std::placeholders::_1, std::placeholders::_2));
-		}
-	}
-
-	void fire_acceptor_channel_accepted(const asio::ip::tcp::endpoint& peer_endpoint) {
-		_acceptor_context_ptr->handler_strand().post([this, peer_endpoint]() {
-			acceptor_context* ctx_p = _acceptor_context_ptr.get();
-			ctx_p->done(false); // reset context to 'not done'.
-			// <-- inbound
-			auto begin = acceptor_handlers().begin();
-			auto end = acceptor_handlers().end();
-			try {
-				for (auto it = begin ; !(ctx_p->done()) && (it != end) ; it++)
-					(*it)->channel_accepted(ctx_p, peer_endpoint.address().to_string(), peer_endpoint.port());
-			} catch (const std::exception& e) {
-				fire_acceptor_exception_caught(acceptor_error(std::string("An exception has thrown in channel_accepted handler. (") + e.what() + ")"));
-			}
-		});
-	}
-
-	void fire_acceptor_exception_caught(const acceptor_error& e) {
-		_acceptor_context_ptr->handler_strand().post([this, e]() {
-			context* ctx_p = _acceptor_context_ptr.get();
-			ctx_p->done(false); // reset context to 'not done'.
-			// <-- inbound
-			auto begin = acceptor_handlers().begin();
-			auto end = acceptor_handlers().end();
-			try {
-				for (auto it = begin ; !(ctx_p->done()) && (it != end) ; it++)
-					(*it)->exception_caught(ctx_p, e);
-			} catch (const std::exception& e2) {
-				fire_acceptor_exception_caught(acceptor_error(std::string("An exception has thrown in exception_caught handler. (") + e2.what() + ")")); // can cause infinite exception...
-			}
-		});
-	}
-
-protected:
 	tcp_channel_ptr _new_channel;
-
-	acceptor_context_ptr _acceptor_context_ptr;
-	acceptor_pipeline_ptr _acceptor_pipeline_ptr;
 };
 
 } // namespace net

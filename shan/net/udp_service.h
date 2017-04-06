@@ -5,6 +5,9 @@
 //  Created by Sung Han Park on 2017. 3. 15..
 //  Copyright © 2017 Sung Han Park. All rights reserved.
 //
+// Note: udp_channel's read(), write_streambuf() or write_streambuf_to() can
+//  cause ECONNREFUSED error if no receiver was associated with the destination
+//  address
 
 #ifndef shan_net_udp_service_h
 #define shan_net_udp_service_h
@@ -120,7 +123,7 @@ public:
 
 	bool write_channel_to(std::size_t channel_id, const ip_port& destination, object_ptr data) {
 		try {
-			udp_channel_context_ptr ch_ctx_ptr;
+			typename decltype(_channel_contexts)::mapped_type ch_ctx_ptr;
 			{
 				std::lock_guard<std::mutex> lock(_shared_mutex);
 				ch_ctx_ptr = std::static_pointer_cast<udp_channel_context>(_channel_contexts.at(channel_id));
@@ -133,7 +136,9 @@ public:
 	}
 
 private:
-	virtual bool is_running() { return static_cast<bool>(_resolver_ptr); }
+	virtual bool is_running() {
+		return static_cast<bool>(_resolver_ptr);
+	}
 
 	void resolve_complete(const asio::error_code& error, asio::ip::udp::resolver::iterator it, udp_channel_context_ptr ch_ctx_ptr) {
 		if (error)
@@ -186,7 +191,7 @@ private:
 		});
 	}
 
-	virtual void fire_channel_read(channel_context_ptr<protocol::udp> ch_ctx_ptr, util::streambuf_ptr& sb_ptr) {
+	virtual void fire_channel_read(udp_channel_context_base_ptr ch_ctx_ptr, util::streambuf_ptr& sb_ptr) {
 		auto ep = static_cast<udp_channel_context*>(ch_ctx_ptr.get())->sender();
 		ip_port ip(ep.address(), ep.port());
 
@@ -208,7 +213,7 @@ private:
 		});
 	}
 
-	virtual void fire_channel_write(channel_context_ptr<protocol::udp> ch_ctx_ptr, object_ptr data) {
+	virtual void fire_channel_write(udp_channel_context_base_ptr ch_ctx_ptr, object_ptr data) {
 		ch_ctx_ptr->handler_strand().post([this, ch_ctx_ptr, data]() {
 			ch_ctx_ptr->done(false); // reset context to 'not done'.
 
@@ -235,7 +240,7 @@ private:
 		});
 	}
 
-	void fire_channel_write_to(udp_channel_context_ptr ch_ctx_ptr, object_ptr data, const ip_port& destination) {
+	void fire_channel_write_to(udp_channel_context_base_ptr ch_ctx_ptr, object_ptr data, const ip_port& destination) {
 		ch_ctx_ptr->handler_strand().post([this, ch_ctx_ptr, data, destination]() {
 			ch_ctx_ptr->done(false); // reset context to 'not done'.
 
@@ -245,7 +250,7 @@ private:
 			auto end = channel_handlers().end();
 			try {
 				for (auto it = begin ; !(ch_ctx_ptr->done()) && (it != end) ; it++)
-					(*it)->channel_write(ch_ctx_ptr.get(), write_obj);
+					(*it)->channel_write(static_cast<udp_channel_context*>(ch_ctx_ptr.get()), write_obj);
 			} catch (const std::exception& e) {
 				fire_channel_exception_caught(ch_ctx_ptr, channel_error(std::string("An exception has thrown in channel_write handler. (") + e.what() + ")"));
 			}
@@ -263,7 +268,7 @@ private:
 		});
 	}
 
-	virtual void fire_channel_written(channel_context_ptr<protocol::udp> ch_ctx_ptr, std::size_t bytes_transferred, util::streambuf_ptr sb_ptr) {
+	virtual void fire_channel_written(udp_channel_context_base_ptr ch_ctx_ptr, std::size_t bytes_transferred, util::streambuf_ptr sb_ptr) {
 		ch_ctx_ptr->handler_strand().post([this, ch_ctx_ptr, bytes_transferred, sb_ptr](){
 			ch_ctx_ptr->done(false); // reset context to 'not done'.
 			// <-- inbound
@@ -278,7 +283,7 @@ private:
 		});
 	}
 
-	virtual void fire_channel_disconnected(channel_context_ptr<protocol::udp> ch_ctx_ptr) {
+	virtual void fire_channel_disconnected(udp_channel_context_base_ptr ch_ctx_ptr) {
 		ch_ctx_ptr->handler_strand().post([this, ch_ctx_ptr](){
 			// in case you called close() yourself, the state is already disconnected,
 			// and fire_channel_disconnected() is already called so it should't be called again.
@@ -311,7 +316,7 @@ private:
 		});
 	}
 
-	virtual void fire_channel_close(channel_context_ptr<protocol::udp> ch_ctx_ptr) {
+	virtual void fire_channel_close(udp_channel_context_base_ptr ch_ctx_ptr) {
 		fire_channel_disconnected(ch_ctx_ptr);
 	}
 

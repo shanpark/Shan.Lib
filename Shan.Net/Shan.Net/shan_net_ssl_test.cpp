@@ -30,12 +30,12 @@ ssl_client* scli_p;
 ssl_server* sserv_p;
 
 class acpt_handler_s : public acceptor_handler {
-	virtual void user_event(context* ctx) override {
+	virtual void user_event(context_base* ctx) override {
 		std::lock_guard<std::mutex> _lock(_mutex);
 		cout << "acpt_handler::" << "user_event() called" << endl;
 	}
 
-	virtual void exception_caught(context* ctx, const std::exception& e) override {
+	virtual void exception_caught(context_base* ctx, const std::exception& e) override {
 		std::lock_guard<std::mutex> _lock(_mutex);
 		cout << "acpt_handler::" << "exception_caught() - " << e.what() << endl;
 	}
@@ -85,12 +85,12 @@ public:
 		cout << ">>>> serv_ch_handler destroyed!!!!" << endl;
 	};
 
-	virtual void user_event(context* ctx) override {
+	virtual void user_event(context_base* ctx) override {
 		std::lock_guard<std::mutex> _lock(_mutex);
 		cout << "serv_ch_handler::" << "user_event() called" << endl;
 	}
 
-	virtual void exception_caught(context* ctx, const std::exception& e) override {
+	virtual void exception_caught(context_base* ctx, const std::exception& e) override {
 		std::lock_guard<std::mutex> _lock(_mutex);
 		cout << "serv_ch_handler::" << "exception_caught() - " << e.what() << endl;
 	}
@@ -138,7 +138,8 @@ public:
 			cout << "serv_ch_handler::" << "channel_disconnected() called:" << ++c << endl;
 		}
 
-		sserv_p->stop();
+		if (c == 2)
+			sserv_p->stop();
 	}
 };
 
@@ -149,12 +150,12 @@ public:
 		cout << ">>>> cli_ch_handler destroyed" << endl;
 	};
 
-	virtual void user_event(context* ctx) override {
+	virtual void user_event(context_base* ctx) override {
 		std::lock_guard<std::mutex> _lock(_mutex);
 		cout << "cli_ch_handler::" << "user_event() called" << endl;
 	}
 
-	virtual void exception_caught(context* ctx, const std::exception& e) override {
+	virtual void exception_caught(context_base* ctx, const std::exception& e) override {
 		std::lock_guard<std::mutex> _lock(_mutex);
 		cout << "cli_ch_handler::" << "exception_caught() - " << e.what() << endl;
 	}
@@ -230,17 +231,29 @@ void shan_net_ssl_test() {
 	serv.add_channel_handler(new serv_ch_handler_s()); //
 	sserv_p = &serv;
 	serv.start(10999);
-	
-	shan::net::ssl_client cli(TLSV12);
-//	cli.set_verify_mode(VERIFY_PEER); // 사설 인증서는 통과 안됨.
-//	cli.set_verify_callback(verify_certificate); // 여기서 통과시키면 사설 인증서도 통과됨.
 
-	cli.add_channel_handler(new channel_coder_s()); //
-	cli.add_channel_handler(new cli_ch_handler_s()); // 이 핸들러는 cli가 destroy될 때 같이 해제된다.
-	scli_p = &cli;
-	cli.start();
-	cli.connect("127.0.0.1", 10999);
+	{
+		shan::net::ssl_client cli(TLSV12);
+
+		cli.add_channel_handler(new channel_coder_s()); //
+		cli.add_channel_handler(new cli_ch_handler_s()); // 이 핸들러는 cli가 destroy될 때 같이 해제된다.
+		scli_p = &cli;
+		cli.start();
+		cli.connect("127.0.0.1", 10999);
+		cli.wait_stop();
+	}
+	{
+		shan::net::ssl_client cli(TLSV12);
+		cli.set_verify_mode(VERIFY_PEER); // 사설 인증서는 통과 안됨.
+		cli.set_verify_callback(verify_certificate); // 여기서 통과시키면 사설 인증서도 통과됨.
+
+		cli.add_channel_handler(new channel_coder_s()); //
+		cli.add_channel_handler(new cli_ch_handler_s()); // 이 핸들러는 cli가 destroy될 때 같이 해제된다.
+		scli_p = &cli;
+		cli.start();
+		cli.connect("127.0.0.1", 10999);
+		cli.wait_stop();
+	}
 
 	serv.wait_stop();
-	cli.wait_stop();
 }

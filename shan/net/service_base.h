@@ -54,7 +54,7 @@ public:
 
 	bool write_channel(std::size_t channel_id, object_ptr data) noexcept {
 		try {
-			channel_context_ptr<Protocol> ch_ctx_ptr;
+			typename decltype(_channel_contexts)::mapped_type ch_ctx_ptr;
 			{
 				std::lock_guard<std::mutex> lock(_shared_mutex);
 				ch_ctx_ptr = _channel_contexts.at(channel_id);
@@ -68,7 +68,7 @@ public:
 
 	void close_channel(std::size_t channel_id) noexcept {
 		try {
-			channel_context_ptr<Protocol> ch_ctx_ptr;
+			typename decltype(_channel_contexts)::mapped_type ch_ctx_ptr;
 			{
 				std::lock_guard<std::mutex> lock(_shared_mutex);
 				ch_ctx_ptr = _channel_contexts.at(channel_id);

@@ -41,6 +41,6 @@
 #include "handler_pipeline.h"
 #include "acceptor.h"
 #include "channel_base.h"
-#include "context.h"
+#include "context_base.h"
 
 #endif /* shan_net_h */

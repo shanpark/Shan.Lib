@@ -30,12 +30,12 @@ tcp_client* cli_p;
 tcp_server* serv_p;
 
 class acpt_handler : public acceptor_handler {
-	virtual void user_event(context* ctx) override {
+	virtual void user_event(context_base* ctx) override {
 		std::lock_guard<std::mutex> _lock(_mutex);
 		cout << "acpt_handler::" << "user_event() called" << endl;
 	}
 
-	virtual void exception_caught(context* ctx, const std::exception& e) override {
+	virtual void exception_caught(context_base* ctx, const std::exception& e) override {
 		std::lock_guard<std::mutex> _lock(_mutex);
 		cout << "acpt_handler::" << "exception_caught() - " << e.what() << endl;
 	}
@@ -85,12 +85,12 @@ public:
 		cout << ">>>> serv_ch_handler destroyed!!!!" << endl;
 	};
 
-	virtual void user_event(context* ctx) override {
+	virtual void user_event(context_base* ctx) override {
 		std::lock_guard<std::mutex> _lock(_mutex);
 		cout << "serv_ch_handler::" << "user_event() called" << endl;
 	}
 
-	virtual void exception_caught(context* ctx, const std::exception& e) override {
+	virtual void exception_caught(context_base* ctx, const std::exception& e) override {
 		std::lock_guard<std::mutex> _lock(_mutex);
 		cout << "serv_ch_handler::" << "exception_caught() - " << e.what() << endl;
 	}
@@ -123,7 +123,7 @@ public:
 	virtual void channel_written(tcp_channel_context_base* ctx, std::size_t bytes_transferred, shan::util::streambuf_ptr sb_ptr) override {
 		std::lock_guard<std::mutex> _lock(_mutex);
 		cout << "serv_ch_handler::" << "channel_written() - " << bytes_transferred << endl;
-//		ctx->close();
+		ctx->close();
 	}
 
 	virtual void channel_disconnected(tcp_channel_context_base* ctx) override {
@@ -131,7 +131,8 @@ public:
 		std::lock_guard<std::mutex> _lock(_mutex);
 		cout << "serv_ch_handler::" << "channel_disconnected() called:" << ++c << endl;
 
-		serv_p->stop();
+		if (c == 2)
+			serv_p->stop();
 	}
 };
 
@@ -142,12 +143,12 @@ public:
 		cout << ">>>> cli_ch_handler destroyed" << endl;
 	};
 
-	virtual void user_event(context* ctx) override {
+	virtual void user_event(context_base* ctx) override {
 		std::lock_guard<std::mutex> _lock(_mutex);
 		cout << "cli_ch_handler::" << "user_event() called" << endl;
 	}
 
-	virtual void exception_caught(context* ctx, const std::exception& e) override {
+	virtual void exception_caught(context_base* ctx, const std::exception& e) override {
 		std::lock_guard<std::mutex> _lock(_mutex);
 		cout << "cli_ch_handler::" << "exception_caught() - " << e.what() << endl;
 	}
@@ -197,14 +198,24 @@ void shan_net_tcp_test() {
 	serv_p = &serv;
 	serv.start(10999);
 
-	shan::net::tcp_client cli;
-	cli.add_channel_handler(new channel_coder()); //
-	cli.add_channel_handler(new cli_ch_handler()); // 이 핸들러는 cli가 destroy될 때 같이 해제된다.
-	cli_p = &cli;
-	cli.start();
-	cli.connect("127.0.0.1", 10999);
+	{
+		shan::net::tcp_client cli;
+		cli.add_channel_handler(new channel_coder()); //
+		cli.add_channel_handler(new cli_ch_handler()); // 이 핸들러는 cli가 destroy될 때 같이 해제된다.
+		cli_p = &cli;
+		cli.start();
+		cli.connect("127.0.0.1", 10999);
+		cli.wait_stop();
+	}
+	{
+		shan::net::tcp_client cli;
+		cli.add_channel_handler(new channel_coder()); //
+		cli.add_channel_handler(new cli_ch_handler()); // 이 핸들러는 cli가 destroy될 때 같이 해제된다.
+		cli_p = &cli;
+		cli.start();
+		cli.connect("127.0.0.1", 10999);
+		cli.wait_stop();
+	}
 
-
-//	serv.wait_stop();
-	cli.wait_stop();
+	serv.wait_stop();
 }

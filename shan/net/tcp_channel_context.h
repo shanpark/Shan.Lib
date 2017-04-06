@@ -26,7 +26,7 @@ private:
 	tcp_channel_ptr _channel_ptr;
 };
 
-using tcp_channel_context_ptr = std::shared_ptr<tcp_channel_context>;
+//using tcp_channel_context_ptr = std::shared_ptr<tcp_channel_context>;
 
 } // namespace net
 } // namespace shan

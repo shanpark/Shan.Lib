@@ -32,7 +32,7 @@ private:
 	ssl_channel_ptr _channel_ptr;
 };
 
-using ssl_channel_context_ptr = std::shared_ptr<ssl_channel_context>;
+//using ssl_channel_context_ptr = std::shared_ptr<ssl_channel_context>;
 
 } // namespace net
 } // namespace shan

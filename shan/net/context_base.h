@@ -1,20 +1,20 @@
 //
-//  context.h
+//  context_base.h
 //  Shan.Net
 //
 //  Created by Sung Han Park on 2017. 3. 14..
 //  Copyright © 2017 Sung Han Park. All rights reserved.
 //
 
-#ifndef shan_net_context_h
-#define shan_net_context_h
+#ifndef shan_net_context_base_h
+#define shan_net_context_base_h
 
 namespace shan {
 namespace net {
 
-class context : public object {
+class context_base : public object {
 public:
-	context(asio::io_service& io_service)
+	context_base(asio::io_service& io_service)
 	: _done(false), _stat(CREATED), _handler_strand(io_service) {}
 
 	void done(bool done) {
@@ -59,12 +59,10 @@ protected:
 	asio::io_service::strand _handler_strand;
 };
 
-using context_ptr = std::shared_ptr<context>;
-
 } // namespace net
 } // namespace shan
 
 #include "acceptor_context.h"
 #include "channel_context.h"
 
-#endif /* shan_net_context_h */
+#endif /* shan_net_context_base_h */

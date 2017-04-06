@@ -12,12 +12,12 @@
 namespace shan {
 namespace net {
 
-class context;
+class context_base;
 
 class handler : public object {
 public:
-	virtual void user_event(shan::net::context* ctx) {} // <-- inbound
-	virtual void exception_caught(shan::net::context* ctx, const std::exception& e) {} // <-- inbound
+	virtual void user_event(shan::net::context_base* ctx) {} // <-- inbound
+	virtual void exception_caught(shan::net::context_base* ctx, const std::exception& e) {} // <-- inbound
 };
 
 } // namespace net

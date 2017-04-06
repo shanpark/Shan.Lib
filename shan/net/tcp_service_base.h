@@ -18,7 +18,7 @@ public:
 	: service_base<protocol::tcp>(worker_count, buffer_base_size) {}
 
 protected:
-	void fire_channel_connected(channel_context_ptr<protocol::tcp> ch_ctx_ptr, std::function<read_complete_handler> read_handler) {
+	void fire_channel_connected(tcp_channel_context_base_ptr ch_ctx_ptr, std::function<read_complete_handler> read_handler) {
 		ch_ctx_ptr->handler_strand().post([this, ch_ctx_ptr, read_handler]() {
 			if (!ch_ctx_ptr->set_stat_if_possible(channel_context<protocol::tcp>::CONNECTED))
 				return;
@@ -37,7 +37,7 @@ protected:
 		});
 	}
 
-	virtual void fire_channel_read(channel_context_ptr<protocol::tcp> ch_ctx_ptr, util::streambuf_ptr& sb_ptr) {
+	virtual void fire_channel_read(tcp_channel_context_base_ptr ch_ctx_ptr, util::streambuf_ptr& sb_ptr) {
 		ch_ctx_ptr->handler_strand().post([this, ch_ctx_ptr, sb_ptr]() { //
 			// copy to context's buffer
 			ch_ctx_ptr->read_buf()->append(*sb_ptr);
@@ -67,7 +67,7 @@ protected:
 		});
 	}
 
-	void fire_channel_rdbuf_empty(channel_context_ptr<protocol::tcp> ch_ctx_ptr) {
+	void fire_channel_rdbuf_empty(tcp_channel_context_base_ptr ch_ctx_ptr) {
 		ch_ctx_ptr->handler_strand().post([this, ch_ctx_ptr]() {
 			if (ch_ctx_ptr->stat() == channel_context<protocol::tcp>::CONNECTED) { // if channel_disconnected() is already called, don't call channel_rdbuf_empty().
 				ch_ctx_ptr->done(false); // reset context to 'not done'.
@@ -84,7 +84,7 @@ protected:
 		});
 	}
 
-	virtual void fire_channel_write(channel_context_ptr<protocol::tcp> ch_ctx_ptr, object_ptr data) {
+	virtual void fire_channel_write(tcp_channel_context_base_ptr ch_ctx_ptr, object_ptr data) {
 		ch_ctx_ptr->handler_strand().post([this, ch_ctx_ptr, data]() {
 			ch_ctx_ptr->done(false); // reset context to 'not done'.
 
@@ -112,7 +112,7 @@ protected:
 		});
 	}
 
-	virtual void fire_channel_written(channel_context_ptr<protocol::tcp> ch_ctx_ptr, std::size_t bytes_transferred, util::streambuf_ptr sb_ptr) {
+	virtual void fire_channel_written(tcp_channel_context_base_ptr ch_ctx_ptr, std::size_t bytes_transferred, util::streambuf_ptr sb_ptr) {
 		ch_ctx_ptr->handler_strand().post([this, ch_ctx_ptr, bytes_transferred, sb_ptr](){
 			ch_ctx_ptr->done(false); // reset context to 'not done'.
 			// <-- inbound
@@ -127,7 +127,7 @@ protected:
 		});
 	}
 
-	virtual void fire_channel_disconnected(channel_context_ptr<protocol::tcp> ch_ctx_ptr) {
+	virtual void fire_channel_disconnected(tcp_channel_context_base_ptr ch_ctx_ptr) {
 		ch_ctx_ptr->handler_strand().post([this, ch_ctx_ptr](){
 			// in case you called close() yourself, the state is already disconnected,
 			// and fire_channel_disconnected() is already called so it should't be called again.
@@ -160,7 +160,7 @@ protected:
 		});
 	}
 
-	virtual void fire_channel_close(channel_context_ptr<protocol::tcp> ch_ctx_ptr) {
+	virtual void fire_channel_close(tcp_channel_context_base_ptr ch_ctx_ptr) {
 		fire_channel_disconnected(ch_ctx_ptr);
 	}
 };
@@ -168,11 +168,14 @@ protected:
 } // namespace net
 } // namespace shan
 
+#include "tcp_server_base.h"
 #include "tcp_server.h"
+
+#include "tcp_client_base.h"
 #include "tcp_client.h"
 
 #ifdef SHAN_NET_SSL_ENABLE
-#include "ssl_service.h"
+#include "ssl_service_base.h"
 #endif
 
 #endif /* shan_net_tcp_service_base_h */

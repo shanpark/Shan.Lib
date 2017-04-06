@@ -16,13 +16,11 @@ template<typename Protocol>
 class service_base;
 
 template<typename Protocol>
-class channel_context : public context {
+class channel_context : public context_base {
 	friend class service_base<Protocol>;
 	friend class tcp_service_base;
-	friend class tcp_server;
-	friend class tcp_client;
-	friend class ssl_server;
-	friend class ssl_client;
+	friend class tcp_server_base;
+	friend class tcp_client_base;
 	friend class udp_service;
 
 public:
@@ -85,6 +83,9 @@ protected:
 template<typename Protocol>
 using channel_context_ptr = typename channel_context<Protocol>::ptr;
 
+using tcp_channel_context_base_ptr = tcp_channel_context_base::ptr;
+using udp_channel_context_base_ptr = udp_channel_context_base::ptr;
+
 } // namespace net
 } // namespace shan
 
@@ -99,7 +100,7 @@ namespace net {
 
 template<typename Protocol>
 inline channel_context<Protocol>::channel_context(asio::io_service& io_service, service_base<Protocol>* svc_p)
-: context(io_service), _service_p(svc_p), _read_sb_ptr(streambuf_pool::get_object(svc_p->_buffer_base_size)) {}
+: context_base(io_service), _service_p(svc_p), _read_sb_ptr(streambuf_pool::get_object(svc_p->_buffer_base_size)) {}
 
 template<typename Protocol>
 inline void channel_context<Protocol>::write(object_ptr data) {
