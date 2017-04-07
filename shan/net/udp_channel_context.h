@@ -38,8 +38,12 @@ private:
 		return _channel_ptr->sender();
 	}
 
-	virtual channel_base<protocol::udp>* channel_p() {
+	virtual channel_base<protocol::udp>* channel_p() override {
 		return _channel_ptr.get();
+	}
+
+	void connect(asio::ip::udp::resolver::iterator it, std::function<udp_connect_complete_handler> connect_handler) {
+		asio::async_connect(static_cast<udp_channel*>(channel_p())->socket(), it, connect_handler);
 	}
 
 private:

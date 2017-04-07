@@ -22,7 +22,7 @@ public:
 		_join_worker_threads(false);
 	}
 
-	void start() noexcept {
+	void start() {
 		std::lock_guard<std::mutex> lock(_service_mutex);
 		if (!is_running()) {
 			service_base::start();
@@ -31,7 +31,7 @@ public:
 		}
 	}
 
-	void stop() noexcept {
+	void stop() {
 		std::lock_guard<std::mutex> lock(_service_mutex);
 		if (is_running()) {
 			service_base::stop(); // no more handler will be called.
@@ -48,13 +48,27 @@ public:
 			auto ch_ctx_ptr = new_channel_context();
 			_resolver_ptr->async_resolve(query, std::bind(&tcp_client_base::resolve_complete, this, std::placeholders::_1, std::placeholders::_2, ch_ctx_ptr));
 		}
+		else {
+			throw service_error("the service is not running.");
+		}
+	}
+
+	void connect(ip_port destination) {
+		if (is_running()) {
+			asio::ip::tcp::resolver::iterator end;
+			auto ch_ctx_ptr = new_channel_context();
+			ch_ctx_ptr->connect(destination.ip(), destination.port(), std::bind((&tcp_client_base::connect_complete), this, std::placeholders::_1, end, ch_ctx_ptr));
+		}
+		else {
+			throw service_error("the service is not running.");
+		}
 	}
 
 protected:
 	virtual tcp_channel_context_base_ptr new_channel_context() = 0;
 	virtual void new_channel_connected(tcp_channel_context_base_ptr ch_ctx_ptr) = 0;
 
-	virtual bool is_running() {
+	virtual bool is_running() override {
 		return static_cast<bool>(_resolver_ptr);
 	}
 
@@ -63,20 +77,29 @@ protected:
 			fire_channel_exception_caught(ch_ctx_ptr, resolver_error("fail to resolve address"));
 		}
 		else {
-			try {
-				// a successful resolve operation is guaranteed to pass at least one entry to the handler
-				ch_ctx_ptr->open(it->endpoint().protocol() == asio::ip::tcp::v6() ? ip::v6 : ip::v4); // opened channel can only have an id.
-			} catch (const std::exception& e) {
-				fire_channel_exception_caught(ch_ctx_ptr, channel_error(e.what()));
-				return;
-			}
+			static_cast<tcp_channel_context*>(ch_ctx_ptr.get())->connect(it, std::bind((&tcp_client_base::connect_complete), this, std::placeholders::_1, std::placeholders::_2, ch_ctx_ptr));
+		}
+	}
 
+	void connect_complete(const asio::error_code& error, asio::ip::tcp::resolver::iterator it, tcp_channel_context_base_ptr ch_ctx_ptr) {
+		if (error) {
+			fire_channel_exception_caught(ch_ctx_ptr, channel_error(error.message()));
+		}
+		else {
 			auto pair = std::make_pair(ch_ctx_ptr->channel_id(), ch_ctx_ptr);
 			std::pair<decltype(_channel_contexts)::iterator, bool> ret;
 			try {
 				std::lock_guard<std::mutex> lock(_shared_mutex);
-				ret = _channel_contexts.emplace(pair);
+				ret = _channel_contexts.emplace(std::move(pair));
 			} catch (...) {
+				decltype(_channel_contexts)::iterator old;
+				{
+					std::lock_guard<std::mutex> lock(_shared_mutex);
+					if ((old = _channel_contexts.find(pair.first)) != _channel_contexts.end()) {
+						old->second->close_immediately(); // close old context;
+						_channel_contexts.erase(pair.first);
+					}
+				}
 				ret.second = false;
 			}
 			if (!ret.second) { // not inserted. already exist. this is a critical error!
@@ -84,16 +107,9 @@ protected:
 				ch_ctx_ptr->close_immediately();
 			}
 			else {
-				ch_ctx_ptr->connect(it->endpoint().address().to_string(), it->endpoint().port(), std::bind((&tcp_client_base::connect_complete), this, std::placeholders::_1, ch_ctx_ptr)); // try first endpoint unconditionally.
+				new_channel_connected(ch_ctx_ptr);
 			}
 		}
-	}
-
-	void connect_complete(const asio::error_code& error, tcp_channel_context_base_ptr ch_ctx_ptr) {
-		if (error)
-			fire_channel_exception_caught(ch_ctx_ptr, channel_error(error.message()));
-		else
-			new_channel_connected(ch_ctx_ptr);
 	}
 
 protected:

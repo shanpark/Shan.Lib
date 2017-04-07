@@ -18,15 +18,15 @@ public:
 	: tcp_client_base(worker_count, buffer_base_size), ssl_service_base(method) {}
 
 private:
-	virtual bool is_running() {
+	virtual bool is_running() override {
 		return tcp_client_base::is_running();
 	}
 
-	virtual tcp_channel_context_base_ptr new_channel_context() {
+	virtual tcp_channel_context_base_ptr new_channel_context() override {
 		return std::make_shared<ssl_channel_context>(ssl_channel_ptr(new ssl_channel(*_io_service_ptr, _ssl_context, _buffer_base_size)), this);
 	}
 
-	virtual void new_channel_connected(tcp_channel_context_base_ptr ch_ctx_ptr) {
+	virtual void new_channel_connected(tcp_channel_context_base_ptr ch_ctx_ptr) override {
 		static_cast<ssl_channel_context*>(ch_ctx_ptr.get())->handshake(asio::ssl::stream_base::client, std::bind(&ssl_client::handshake_complete, this, std::placeholders::_1, ch_ctx_ptr));
 	}
 

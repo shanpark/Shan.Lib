@@ -131,7 +131,7 @@ public:
 		std::lock_guard<std::mutex> _lock(_mutex);
 		cout << "serv_ch_handler::" << "channel_disconnected() called:" << ++c << endl;
 
-		if (c == 2)
+		if (c == 4)
 			serv_p->stop();
 	}
 };
@@ -186,7 +186,9 @@ public:
 		static int c = 0;
 		std::lock_guard<std::mutex> _lock(_mutex);
 		cout << "cli_ch_handler::" << "channel_disconnected() called:" << ++c << endl;
-		cli_p->stop(); // stop()호출 뒤에 발생되는 이벤트는 핸들러 호출이 되지 않는다.
+
+		if ((c % 2) == 0)
+			cli_p->stop(); // stop()호출 뒤에 발생되는 이벤트는 핸들러 호출이 되지 않는다.
 	}
 };
 
@@ -205,6 +207,7 @@ void shan_net_tcp_test() {
 		cli_p = &cli;
 		cli.start();
 		cli.connect("127.0.0.1", 10999);
+		cli.connect(ip_port("127.0.0.1", 10999));
 		cli.wait_stop();
 	}
 	{
@@ -214,6 +217,7 @@ void shan_net_tcp_test() {
 		cli_p = &cli;
 		cli.start();
 		cli.connect("127.0.0.1", 10999);
+		cli.connect(ip_port("127.0.0.1", 10999));
 		cli.wait_stop();
 	}
 

@@ -82,7 +82,7 @@ public:
 protected:
 	virtual bool is_running() = 0;
 
-	void start() noexcept {
+	void start() {
 		_io_service_ptr = std::unique_ptr<asio::io_service>(new asio::io_service());
 		_work_ptr = std::unique_ptr<asio::io_service::work>(new asio::io_service::work(*_io_service_ptr));
 
@@ -92,7 +92,7 @@ protected:
 	}
 
 	// Once stop() is called, the service object can not be reused.
-	void stop() noexcept {
+	void stop() {
 		_io_service_ptr->stop();
 
 		_join_worker_threads(true);

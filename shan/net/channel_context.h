@@ -45,15 +45,18 @@ protected:
 	virtual channel_base<Protocol>* channel_p() = 0;
 
 	void open(ip v) {
-		if (set_stat_if_possible(OPEN))
+		if (settable_stat(OPEN)) {
 			channel_p()->open(v);
+			stat(OPEN);
+		}
 	}
 
 	void close_immediately() noexcept {
 		channel_p()->close();
-		set_stat_if_possible(CLOSED);
+		stat(CLOSED);
 	}
 
+	// try connect without resolving an address.
 	void connect(const std::string& address, uint16_t port, std::function<connect_complete_handler> connect_handler) {
 		channel_p()->connect(address, port, connect_handler);
 	}

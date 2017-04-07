@@ -12,25 +12,29 @@
 #include <deque>
 #include <memory>
 #include <limits>
+#include <mutex>
+#include <cassert>
 #include "../object.h"
 
 namespace shan {
 namespace util {
 
+
 ////////////////////////////////////////////////////////////////////////////////
 // poolable interface.
 // all pooling objects must implement this interface.
 //
+template<typename... Args>
 class poolable {
 public:
-	template<typename... Args >
-	void reset(Args&&... args) noexcept; // argument list must be the same as a constructor.
+	virtual void reset(Args... args) noexcept = 0; // argument list must be the same as a constructor.
 };
 
 ////////////////////////////////////////////////////////////////////////////////
 // static_pool
 // provides static public pooling method.
-//
+// The poolable object must implement the reset method with the same parameters
+// as the constructor.
 template<typename T, std::size_t MaxSize = std::numeric_limits<std::size_t>::max()>
 class static_pool : public object {
 public:
@@ -39,38 +43,47 @@ public:
 public:
 	template<typename... Args>
 	static ptr_type get_object(Args&&... args) {
+		std::lock_guard<std::mutex> lock(_mutex);
 		if (_pool.empty()) {
 			auto obj = std::make_shared<T>(std::forward<Args>(args)...); // constructor's argument list.
 			return obj;
 		}
 		else {
 			auto obj = _pool.front();
-			obj->reset(std::forward<Args>(args)...); // object must implement poolable interface.
+			obj->reset(std::forward<Args>(args)...); // The poolable object must implement the reset method with the same parameters as the constructor.
 			_pool.pop_front();
 			return obj;
 		}
 	}
 
 	static void return_object(ptr_type obj) noexcept {
-		try {
-			if (_pool.size() < MaxSize)
-				_pool.push_back(obj);
-		} catch (...) {
-			// ignore exception. obj will be released.
+		if (obj) {
+			try {
+				std::lock_guard<std::mutex> lock(_mutex);
+				if (_pool.size() < MaxSize)
+					_pool.push_back(obj);
+			} catch (...) {
+				// ignore exception. obj will be released.
+			}
 		}
 	}
 
-protected:
+private:
+	static std::mutex _mutex;
 	static std::deque<ptr_type> _pool;
 };
 
 template<typename T, std::size_t MaxSize>
 std::deque<typename static_pool<T, MaxSize>::ptr_type> static_pool<T, MaxSize>::_pool;
 
+template<typename T, std::size_t MaxSize>
+std::mutex static_pool<T, MaxSize>::_mutex;
+
 ////////////////////////////////////////////////////////////////////////////////
 // pool
 // provides general pooling method. (not a static class. need to create an object.)
-//
+// The poolable object must implement the reset method with the same parameters
+// as the constructor.
 template<typename T, std::size_t MaxSize = std::numeric_limits<std::size_t>::max()>
 class pool : public object {
 public:
@@ -79,13 +92,14 @@ public:
 public:
 	template<typename... Args>
 	ptr_type get_object(Args&&... args) {
+		std::lock_guard<std::mutex> lock(_mutex);
 		if (_pool.empty()) {
 			auto obj = std::make_shared<T>(std::forward<Args>(args)...); // constructor's argument list.
 			return obj;
 		}
 		else {
 			auto obj = _pool.front();
-			obj->reset(std::forward<Args>(args)...); // object must implement poolable interface.
+			obj->reset(std::forward<Args>(args)...); // The poolable object must implement the reset method with the same parameters as the constructor.
 			_pool.pop_front();
 			return obj;
 		}
@@ -93,6 +107,7 @@ public:
 
 	void return_object(ptr_type obj) noexcept {
 		try {
+			std::lock_guard<std::mutex> lock(_mutex);
 			if (_pool.size() < MaxSize)
 				_pool.push_back(obj);
 		} catch (...) {
@@ -101,6 +116,7 @@ public:
 	}
 
 protected:
+	std::mutex _mutex;
 	std::deque<ptr_type> _pool;
 };
 

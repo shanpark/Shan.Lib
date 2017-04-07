@@ -84,11 +84,11 @@ void streambuf_test() {
 int main(int argc, const char * argv[]) {
 //	streambuf_test();
 
-//	std::cout << "========== TCP test ==========" << std::endl;
-//	shan_net_tcp_test();
+	std::cout << "========== TCP test ==========" << std::endl;
+	shan_net_tcp_test();
 
-//	std::cout << std::endl << "========== SSL test ==========" << std::endl;
-//	shan_net_ssl_test();
+	std::cout << std::endl << "========== SSL test ==========" << std::endl;
+	shan_net_ssl_test();
 
 	std::cout << std::endl << "========== UDP test ==========" << std::endl;
 	shan_net_udp_test();

@@ -18,23 +18,23 @@ public:
 	: tcp_server_base(worker_count, buffer_base_size), ssl_service_base(method) {}
 
 private:
-	virtual bool is_running() {
+	virtual bool is_running() override {
 		return tcp_server_base::is_running();
 	}
 
-	virtual void prepare_channel_for_next_accept() {
+	virtual void prepare_channel_for_next_accept() override {
 		_new_channel = ssl_channel_ptr(new ssl_channel(*_io_service_ptr, _ssl_context, _buffer_base_size));
 	}
 
-	virtual asio::ip::tcp::socket& socket() { // return the asio socket of the prepared channel.
+	virtual asio::ip::tcp::socket& socket() override { // return the asio socket of the prepared channel.
 		return _new_channel->socket();
 	}
 
-	virtual tcp_channel_context_base_ptr new_channel_context() {
+	virtual tcp_channel_context_base_ptr new_channel_context() override {
 		return std::make_shared<ssl_channel_context>(std::move(_new_channel), this);
 	}
 
-	virtual void new_channel_accepted(tcp_channel_context_base_ptr ch_ctx_ptr) {
+	virtual void new_channel_accepted(tcp_channel_context_base_ptr ch_ctx_ptr) override {
 		static_cast<ssl_channel_context*>(ch_ctx_ptr.get())->handshake(asio::ssl::stream_base::server, std::bind(&ssl_server::handshake_complete, this, std::placeholders::_1, ch_ctx_ptr));
 	}
 

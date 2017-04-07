@@ -26,50 +26,50 @@ public:
 	, _write_strand(_socket.get_io_service()) {}
 
 	virtual ~tcp_channel() {
-		if (_socket.is_open())
+		if (socket().is_open())
 			close();
 		streambuf_pool::return_object(_read_sb_ptr);
 	}
 
-	virtual std::size_t id() const {
-		return static_cast<std::size_t>(const_cast<tcp_channel*>(this)->_socket.native_handle());
+	virtual std::size_t id() const override {
+		return static_cast<std::size_t>(const_cast<tcp_channel*>(this)->socket().native_handle());
 	}
 
 private:
-	virtual void open(ip v) {
-		_socket.open((v == ip::v6) ? asio::ip::tcp::v6() : asio::ip::tcp::v4());
+	virtual void open(ip v) override {
+		socket().open((v == ip::v6) ? asio::ip::tcp::v6() : asio::ip::tcp::v4());
 	}
 
-	virtual void close() noexcept {
+	virtual void close() noexcept override {
 		asio::error_code ec;
-		if (_socket.is_open()) {
-			_socket.shutdown(asio::socket_base::shutdown_both, ec);
-			_socket.close(ec); // Note that, even if the function indicates an error, the underlying descriptor is closed.
+		if (socket().is_open()) {
+			socket().shutdown(asio::socket_base::shutdown_both, ec);
+			socket().close(ec); // Note that, even if the function indicates an error, the underlying descriptor is closed.
 		}
 	}
 
-	virtual void connect(const std::string& address, uint16_t port, std::function<connect_complete_handler> connect_handler) {
+	virtual void connect(const std::string& address, uint16_t port, std::function<connect_complete_handler> connect_handler) override {
 		asio::ip::tcp::endpoint ep(asio::ip::address::from_string(address), port);
-		_socket.async_connect(ep, connect_handler);
+		socket().async_connect(ep, connect_handler);
 	}
 
-	virtual void read(std::function<read_complete_handler> read_handler) noexcept {
-		_socket.async_read_some(asio::buffer(_read_sb_ptr->prepare(_read_sb_ptr->base_size()), _read_sb_ptr->base_size()),
-								std::bind(&tcp_channel::read_complete, this, std::placeholders::_1, std::placeholders::_2, read_handler));
+	virtual void read(std::function<read_complete_handler> read_handler) noexcept override {
+		socket().async_read_some(asio::buffer(_read_sb_ptr->prepare(_read_sb_ptr->base_size()), _read_sb_ptr->base_size()),
+								 std::bind(&tcp_channel::read_complete, this, std::placeholders::_1, std::placeholders::_2, read_handler));
 	}
 
-	virtual void write_streambuf(util::streambuf_ptr write_sb_ptr, std::function<write_complete_handler> write_handler) {
+	virtual void write_streambuf(util::streambuf_ptr write_sb_ptr, std::function<write_complete_handler> write_handler) override {
 		_write_strand.post([this, write_sb_ptr, write_handler]() {
 			_write_buf_queue.push_back(write_sb_ptr);
 
 			if (_write_buf_queue.size() == 1)
-				asio::async_write(_socket, asio::buffer(write_sb_ptr->in_ptr(), write_sb_ptr->in_size()),
+				asio::async_write(socket(), asio::buffer(write_sb_ptr->in_ptr(), write_sb_ptr->in_size()),
 								  std::bind(&tcp_channel::write_complete, this, std::placeholders::_1, std::placeholders::_2, write_sb_ptr, write_handler));
 		});
 	}
 
-	virtual asio::io_service& io_service() {
-		return _socket.get_io_service();
+	virtual asio::io_service& io_service() override {
+		return socket().get_io_service();
 	}
 
 	asio::ip::tcp::socket& socket() {
@@ -95,7 +95,7 @@ private:
 
 			if (!_write_buf_queue.empty()) {
 				util::streambuf_ptr next_buf_ptr = _write_buf_queue.front();
-				asio::async_write(_socket, asio::buffer(next_buf_ptr->in_ptr(), next_buf_ptr->in_size()), std::bind(&tcp_channel::write_complete, this, std::placeholders::_1, std::placeholders::_2, next_buf_ptr, write_handler));
+				asio::async_write(socket(), asio::buffer(next_buf_ptr->in_ptr(), next_buf_ptr->in_size()), std::bind(&tcp_channel::write_complete, this, std::placeholders::_1, std::placeholders::_2, next_buf_ptr, write_handler));
 			}
 		});
 	}

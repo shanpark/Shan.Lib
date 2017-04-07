@@ -13,6 +13,8 @@ namespace shan {
 namespace net {
 
 using connect_complete_handler = void (const asio::error_code& error);
+using tcp_connect_complete_handler = void (const asio::error_code& error, asio::ip::tcp::resolver::iterator it);
+using udp_connect_complete_handler = void (const asio::error_code& error, asio::ip::udp::resolver::iterator it);
 using read_complete_handler = void (const asio::error_code& error, util::streambuf_ptr sb_ptr);
 using write_complete_handler = void (const asio::error_code& error, std::size_t bytes_transferred, util::streambuf_ptr sb_ptr);
 

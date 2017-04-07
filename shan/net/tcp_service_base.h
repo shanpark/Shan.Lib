@@ -20,8 +20,9 @@ public:
 protected:
 	void fire_channel_connected(tcp_channel_context_base_ptr ch_ctx_ptr, std::function<read_complete_handler> read_handler) {
 		ch_ctx_ptr->handler_strand().post([this, ch_ctx_ptr, read_handler]() {
-			if (!ch_ctx_ptr->set_stat_if_possible(channel_context<protocol::tcp>::CONNECTED))
+			if (!ch_ctx_ptr->settable_stat(channel_context<protocol::tcp>::CONNECTED))
 				return;
+			ch_ctx_ptr->stat(channel_context<protocol::tcp>::CONNECTED);
 
 			ch_ctx_ptr->done(false); // reset context to 'not done'.
 			// <-- inbound
@@ -37,7 +38,7 @@ protected:
 		});
 	}
 
-	virtual void fire_channel_read(tcp_channel_context_base_ptr ch_ctx_ptr, util::streambuf_ptr& sb_ptr) {
+	virtual void fire_channel_read(tcp_channel_context_base_ptr ch_ctx_ptr, util::streambuf_ptr& sb_ptr) override {
 		ch_ctx_ptr->handler_strand().post([this, ch_ctx_ptr, sb_ptr]() { //
 			// copy to context's buffer
 			ch_ctx_ptr->read_buf()->append(*sb_ptr);
@@ -84,7 +85,7 @@ protected:
 		});
 	}
 
-	virtual void fire_channel_write(tcp_channel_context_base_ptr ch_ctx_ptr, object_ptr data) {
+	virtual void fire_channel_write(tcp_channel_context_base_ptr ch_ctx_ptr, object_ptr data) override {
 		ch_ctx_ptr->handler_strand().post([this, ch_ctx_ptr, data]() {
 			ch_ctx_ptr->done(false); // reset context to 'not done'.
 
@@ -112,7 +113,7 @@ protected:
 		});
 	}
 
-	virtual void fire_channel_written(tcp_channel_context_base_ptr ch_ctx_ptr, std::size_t bytes_transferred, util::streambuf_ptr sb_ptr) {
+	virtual void fire_channel_written(tcp_channel_context_base_ptr ch_ctx_ptr, std::size_t bytes_transferred, util::streambuf_ptr sb_ptr) override {
 		ch_ctx_ptr->handler_strand().post([this, ch_ctx_ptr, bytes_transferred, sb_ptr](){
 			ch_ctx_ptr->done(false); // reset context to 'not done'.
 			// <-- inbound
@@ -127,12 +128,12 @@ protected:
 		});
 	}
 
-	virtual void fire_channel_disconnected(tcp_channel_context_base_ptr ch_ctx_ptr) {
+	virtual void fire_channel_disconnected(tcp_channel_context_base_ptr ch_ctx_ptr) override {
 		ch_ctx_ptr->handler_strand().post([this, ch_ctx_ptr](){
 			// in case you called close() yourself, the state is already disconnected,
 			// and fire_channel_disconnected() is already called so it should't be called again.
 			if (ch_ctx_ptr->stat() == channel_context<protocol::tcp>::CONNECTED) {
-				ch_ctx_ptr->set_stat_if_possible(channel_context<protocol::tcp>::DISCONNECTED);
+				ch_ctx_ptr->stat(channel_context<protocol::tcp>::DISCONNECTED);
 
 				ch_ctx_ptr->done(false); // reset context to 'not done'.
 				// <-- inbound
@@ -147,20 +148,16 @@ protected:
 			}
 
 			// close channel
-			try {
-				auto ch_id = ch_ctx_ptr->channel_id();
-				ch_ctx_ptr->close_immediately();
-				{
-					std::lock_guard<std::mutex> lock(_shared_mutex);
-					_channel_contexts.erase(ch_id);
-				}
-			} catch (const std::exception&) {
-				// ignore all errors even if the above codes causes an error
+			auto ch_id = ch_ctx_ptr->channel_id();
+			ch_ctx_ptr->close_immediately();
+			{
+				std::lock_guard<std::mutex> lock(_shared_mutex);
+				_channel_contexts.erase(ch_id);
 			}
 		});
 	}
 
-	virtual void fire_channel_close(tcp_channel_context_base_ptr ch_ctx_ptr) {
+	virtual void fire_channel_close(tcp_channel_context_base_ptr ch_ctx_ptr) override {
 		fire_channel_disconnected(ch_ctx_ptr);
 	}
 };

@@ -21,16 +21,17 @@ public:
 
 private:
 	void start(uint16_t port, bool reuse_addr, int backlog) {
-		if (set_stat_if_possible(STARTED)) {
+		if (settable_stat(STARTED)) {
 			_acceptor_ptr->open(reuse_addr);
 			_acceptor_ptr->bind(port);
 			_acceptor_ptr->listen(backlog);
+			stat(STARTED);
 		}
 	}
 
 	void stop() noexcept {
 		_acceptor_ptr->close();
-		set_stat_if_possible(CLOSED);
+		stat(CLOSED);
 	}
 
 	void accept(asio::ip::tcp::socket& peer, const std::function<accept_complete_hander>& accept_handler) {

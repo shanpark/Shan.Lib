@@ -37,7 +37,7 @@ public:
 		return false; // if service started, can't add handler.
 	}
 
-	void start(uint16_t port, bool reuse_addr = true, int listen_backlog = DEFAULT_BACKLOG, ip v = ip::v4) noexcept {
+	void start(uint16_t port, bool reuse_addr = true, int listen_backlog = DEFAULT_BACKLOG, ip v = ip::v4) {
 		try {
 			std::lock_guard<std::mutex> lock(_service_mutex);
 			if (!is_running()) {
@@ -54,7 +54,7 @@ public:
 		}
 	}
 
-	void stop() noexcept {
+	void stop() {
 		std::lock_guard<std::mutex> lock(_service_mutex);
 		if (is_running()) {
 			service_base::stop(); // no more handler will be called.
@@ -72,7 +72,7 @@ protected:
 	virtual tcp_channel_context_base_ptr new_channel_context() = 0;
 	virtual void new_channel_accepted(tcp_channel_context_base_ptr ch_ctx_ptr) = 0;
 
-	virtual bool is_running() {
+	virtual bool is_running() override {
 		return static_cast<bool>(_acceptor_context_ptr);
 	}
 
@@ -80,7 +80,7 @@ protected:
 		return _acceptor_pipeline_ptr->handlers();
 	}
 
-	virtual void accept_complete(const asio::error_code& error, const asio::ip::tcp::endpoint& peer_endpoint) {
+	void accept_complete(const asio::error_code& error, const asio::ip::tcp::endpoint& peer_endpoint) {
 		if (error) {
 			if (error == asio::error::operation_aborted)
 				return; // acceptor closed.
@@ -93,13 +93,21 @@ protected:
 			std::pair<decltype(_channel_contexts)::iterator, bool> ret;
 			try {
 				std::lock_guard<std::mutex> lock(_shared_mutex);
-				ret = _channel_contexts.emplace(pair);
+				ret = _channel_contexts.emplace(std::move(pair));
 			} catch (...) {
+				decltype(_channel_contexts)::iterator old;
+				{
+					std::lock_guard<std::mutex> lock(_shared_mutex);
+					if ((old = _channel_contexts.find(pair.first)) != _channel_contexts.end()) {
+						old->second->close_immediately(); // close old context;
+						_channel_contexts.erase(pair.first);
+					}
+				}
 				ret.second = false;
 			}
 			if (!ret.second) { // not inserted. already exist. this is a critical error!
 				fire_channel_exception_caught(pair.second, channel_error("critical error. duplicate id for new channel. or not enough memory."));
-				pair.second->close_immediately();
+				ch_ctx_ptr->close_immediately();
 			}
 			else { // successfully inserted
 				fire_acceptor_channel_accepted(peer_endpoint);

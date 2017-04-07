@@ -30,16 +30,16 @@ public:
 		streambuf_pool::return_object(_read_sb_ptr);
 	}
 
-	virtual std::size_t id() const {
+	virtual std::size_t id() const override {
 		return static_cast<std::size_t>(const_cast<udp_channel*>(this)->_socket.native_handle());
 	}
 
 private:
-	virtual void open(ip v) {
+	virtual void open(ip v) override {
 		_socket.open((v == ip::v6) ? asio::ip::udp::v6() : asio::ip::udp::v4());
 	}
 
-	virtual void close() noexcept {
+	virtual void close() noexcept override {
 		asio::error_code ec;
 		if (_socket.is_open()) {
 			_socket.shutdown(asio::socket_base::shutdown_both, ec);
@@ -52,17 +52,17 @@ private:
 		_socket.bind(asio::ip::udp::endpoint((v == ip::v6) ? asio::ip::udp::v6() : asio::ip::udp::v4(), port));
 	}
 
-	virtual void connect(const std::string& address, uint16_t port, std::function<connect_complete_handler> connect_handler) {
+	virtual void connect(const std::string& address, uint16_t port, std::function<connect_complete_handler> connect_handler) override {
 		asio::ip::udp::endpoint ep(asio::ip::address::from_string(address), port);
 		_socket.async_connect(ep, connect_handler);
 	}
 
-	virtual void read(std::function<read_complete_handler> read_handler) noexcept {
+	virtual void read(std::function<read_complete_handler> read_handler) noexcept override {
 		_socket.async_receive_from(asio::buffer(_read_sb_ptr->prepare(_read_sb_ptr->base_size()), _read_sb_ptr->base_size()), _sender,
 								   std::bind(&udp_channel::read_complete, this, std::placeholders::_1, std::placeholders::_2, read_handler));
 	}
 
-	virtual void write_streambuf(util::streambuf_ptr write_sb_ptr, std::function<write_complete_handler> write_handler) {
+	virtual void write_streambuf(util::streambuf_ptr write_sb_ptr, std::function<write_complete_handler> write_handler) override {
 		_write_strand.post([this, write_sb_ptr, write_handler]() {
 			_write_datagram_queue.push_back(__datagram_message(write_sb_ptr, ip_port()));
 
@@ -84,8 +84,12 @@ private:
 		});
 	}
 
-	virtual asio::io_service& io_service() {
+	virtual asio::io_service& io_service() override {
 		return _socket.get_io_service();
+	}
+
+	asio::ip::udp::socket& socket() {
+		return _socket;
 	}
 	
 	asio::ip::udp::endpoint& sender() {

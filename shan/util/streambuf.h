@@ -20,7 +20,7 @@
 namespace shan {
 namespace util {
 
-class streambuf : public shan::object, public std::streambuf, public noncopyable, public poolable {
+class streambuf : public shan::object, public std::streambuf, public noncopyable, public poolable<std::size_t> {
 public:
 	explicit streambuf(std::size_t base_size = __def_size)
 	: _base_size(base_size), _buffer() {
@@ -30,8 +30,8 @@ public:
 		setp(&_buffer[0], &_buffer[0] + _base_size);
 	}
 
-	// poolable interface. (non-virtual)
-	virtual void reset(std::size_t base_size = __def_size) noexcept { // parameters must be the same as the constructor.
+	// to meke poolable object.
+	virtual void reset(std::size_t base_size) noexcept { // parameters must be the same as the constructor.
 		setg(&_buffer[0], &_buffer[0], &_buffer[0]);
 		setp(&_buffer[0], &_buffer[0] + _buffer.size());
 	}
@@ -242,7 +242,7 @@ protected:
 		setp(&_buffer[0] + pnext, &_buffer[0] + pend);
 	}
 
-	enum { __min_size = 128, __def_size = 4096 };
+	enum : std::size_t { __min_size = 128, __def_size = 4096 };
 
 protected:
 	std::size_t _base_size;

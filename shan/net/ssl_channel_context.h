@@ -20,7 +20,7 @@ public:
 	: tcp_channel_context_base(ch_ptr->io_service(), svc_p), _channel_ptr(std::move(ch_ptr)) {}
 
 private:
-	virtual channel_base<protocol::tcp>* channel_p() {
+	virtual channel_base<protocol::tcp>* channel_p() override {
 		return _channel_ptr.get();
 	}
 

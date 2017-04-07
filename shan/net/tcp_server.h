@@ -18,19 +18,19 @@ public:
 	: tcp_server_base(worker_count, buffer_base_size) {}
 
 private:
-	virtual void prepare_channel_for_next_accept() {
+	virtual void prepare_channel_for_next_accept() override {
 		_new_channel = tcp_channel_ptr(new tcp_channel(asio::ip::tcp::socket(*_io_service_ptr), _buffer_base_size));
 	}
 
-	virtual asio::ip::tcp::socket& socket() { // return the asio socket of the prepared channel.
+	virtual asio::ip::tcp::socket& socket() override { // return the asio socket of the prepared channel.
 		return _new_channel->socket();
 	}
 
-	virtual tcp_channel_context_base_ptr new_channel_context() {
+	virtual tcp_channel_context_base_ptr new_channel_context() override {
 		return std::make_shared<tcp_channel_context>(std::move(_new_channel), this);
 	}
 
-	virtual void new_channel_accepted(tcp_channel_context_base_ptr tcp_ch_ctx_base_ptr) {
+	virtual void new_channel_accepted(tcp_channel_context_base_ptr tcp_ch_ctx_base_ptr) override {
 		fire_channel_connected(tcp_ch_ctx_base_ptr, std::bind(&tcp_server::read_complete, this, std::placeholders::_1, std::placeholders::_2, tcp_ch_ctx_base_ptr));
 	}
 

@@ -37,7 +37,7 @@ protected:
 		CLOSED // all
 	};
 
-	bool set_stat_if_possible(uint8_t s) {
+	bool settable_stat(uint8_t s) {
 		if (s > _stat) { // the state can not proceed reverse direction.
 			_stat = s;
 			return true;
@@ -47,6 +47,10 @@ protected:
 
 	uint8_t stat() {
 		return _stat;
+	}
+
+	void stat(uint8_t s) {
+		_stat = s;
 	}
 
 	asio::io_service::strand& handler_strand() {

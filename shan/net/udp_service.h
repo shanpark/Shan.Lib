@@ -25,7 +25,7 @@ public:
 		_join_worker_threads(false);
 	}
 
-	virtual void start() noexcept {
+	void start() noexcept {
 		std::lock_guard<std::mutex> lock(_service_mutex);
 		if (!is_running()) {
 			service_base::start();
@@ -34,7 +34,7 @@ public:
 		}
 	}
 
-	virtual void stop() noexcept {
+	void stop() noexcept {
 		std::lock_guard<std::mutex> lock(_service_mutex);
 		if (is_running()) {
 			service_base::stop(); // no more handler will be called.
@@ -44,16 +44,17 @@ public:
 		}
 	}
 
-	bool resolve(const std::string& domain, uint16_t port, ip_port& ip_port_out) {
+	void resolve(const std::string& domain, uint16_t port, ip_port& ip_port_out) {
 		if (is_running()) {
 			asio::error_code error;
 			asio::ip::udp::resolver::query query(domain, std::to_string(port));
 			auto it = _resolver_ptr->resolve(query, error);
 
 			ip_port_out.set(it->endpoint().address(), it->endpoint().port());
-			return true;
 		}
-		return false;
+		else {
+			throw service_error("the service is not running.");
+		}
 	}
 
 	void bind_connect(uint16_t local_port, const std::string& remote_address = std::string(""), uint16_t remote_port = 0, ip v = ip::v4) {
@@ -68,6 +69,14 @@ public:
 				std::lock_guard<std::mutex> lock(_shared_mutex);
 				ret = _channel_contexts.emplace(pair);
 			} catch (...) {
+				decltype(_channel_contexts)::iterator old;
+				{
+					std::lock_guard<std::mutex> lock(_shared_mutex);
+					if ((old = _channel_contexts.find(pair.first)) != _channel_contexts.end()) {
+						old->second->close_immediately(); // close old context;
+						_channel_contexts.erase(pair.first);
+					}
+				}
 				ret.second = false;
 			}
 
@@ -87,6 +96,9 @@ public:
 				}
 			}
 		}
+		else {
+			throw service_error("the service is not running.");
+		}
 	}
 
 	void bind_connect(uint16_t local_port, ip_port destination, ip v = ip::v4) {
@@ -101,6 +113,14 @@ public:
 				std::lock_guard<std::mutex> lock(_shared_mutex);
 				ret = _channel_contexts.emplace(pair);
 			} catch (...) {
+				decltype(_channel_contexts)::iterator old;
+				{
+					std::lock_guard<std::mutex> lock(_shared_mutex);
+					if ((old = _channel_contexts.find(pair.first)) != _channel_contexts.end()) {
+						old->second->close_immediately(); // close old context;
+						_channel_contexts.erase(pair.first);
+					}
+				}
 				ret.second = false;
 			}
 
@@ -114,50 +134,68 @@ public:
 				if (!destination.is_valid()) {
 					ch_ctx_ptr->read(std::bind(&udp_service::read_complete, this, std::placeholders::_1, std::placeholders::_2, ch_ctx_ptr));
 				}
-				else {
-					ch_ctx_ptr->connect(destination.ip(), destination.port(), std::bind((&udp_service::connect_complete), this, std::placeholders::_1, ch_ctx_ptr));
+				else { // destination is already resolved. don't need to resolve address.
+					asio::ip::udp::resolver::iterator end;
+					// call base's connect method.
+					static_cast<udp_channel_context_base*>(ch_ctx_ptr.get())->connect(destination.ip(), destination.port(), std::bind(&udp_service::connect_complete, this, std::placeholders::_1, end, ch_ctx_ptr));
 				}
 			}
+		}
+		else {
+			throw service_error("the service is not running.");
 		}
 	}
 
 	bool write_channel_to(std::size_t channel_id, const ip_port& destination, object_ptr data) {
-		try {
-			typename decltype(_channel_contexts)::mapped_type ch_ctx_ptr;
-			{
-				std::lock_guard<std::mutex> lock(_shared_mutex);
-				ch_ctx_ptr = std::static_pointer_cast<udp_channel_context>(_channel_contexts.at(channel_id));
+		if (is_running()) {
+			try {
+				typename decltype(_channel_contexts)::mapped_type ch_ctx_ptr;
+				{
+					std::lock_guard<std::mutex> lock(_shared_mutex);
+					ch_ctx_ptr = std::static_pointer_cast<udp_channel_context>(_channel_contexts.at(channel_id));
+				}
+				fire_channel_write_to(ch_ctx_ptr, data, destination);
+				return true;
+			} catch (const std::exception&) {
+				return false;
 			}
-			fire_channel_write_to(ch_ctx_ptr, data, destination);
-			return true;
-		} catch (const std::exception&) {
-			return false;
+		}
+		else {
+			throw service_error("the service is not running.");
 		}
 	}
 
 private:
-	virtual bool is_running() {
+	virtual bool is_running() override {
 		return static_cast<bool>(_resolver_ptr);
 	}
 
 	void resolve_complete(const asio::error_code& error, asio::ip::udp::resolver::iterator it, udp_channel_context_ptr ch_ctx_ptr) {
-		if (error)
+		if (error) {
 			fire_channel_exception_caught(ch_ctx_ptr, resolver_error("fail to resolve address"));
-		else
-			ch_ctx_ptr->connect(it->endpoint().address().to_string(), it->endpoint().port(), std::bind((&udp_service::connect_complete), this, std::placeholders::_1, ch_ctx_ptr)); // try first endpoint unconditionally.
+			_channel_contexts.erase(ch_ctx_ptr->channel_id());
+		}
+		else {
+			ch_ctx_ptr->connect(it, std::bind(&udp_service::connect_complete, this, std::placeholders::_1, std::placeholders::_2, ch_ctx_ptr));
+		}
 	}
 
-	void connect_complete(const asio::error_code& error, udp_channel_context_ptr ch_ctx_ptr) {
-		if (error)
+	void connect_complete(const asio::error_code& error, asio::ip::udp::resolver::iterator it, udp_channel_context_ptr ch_ctx_ptr) {
+		// if 'it' parameter is default constucted, it means that connect() was called without resolving address.
+		if (error) {
 			fire_channel_exception_caught(ch_ctx_ptr, channel_error(error.message()));
-		else
+			_channel_contexts.erase(ch_ctx_ptr->channel_id());
+		}
+		else {
 			fire_channel_connected(ch_ctx_ptr, std::bind(&udp_service::read_complete, this, std::placeholders::_1, std::placeholders::_2, ch_ctx_ptr));
+		}
 	}
 
 	void fire_channel_bound(udp_channel_context_ptr ch_ctx_ptr) {
 		ch_ctx_ptr->handler_strand().post([this, ch_ctx_ptr]() {
-			if (!ch_ctx_ptr->set_stat_if_possible(channel_context<protocol::udp>::BOUND))
+			if (!ch_ctx_ptr->settable_stat(channel_context<protocol::udp>::BOUND))
 				return;
+			ch_ctx_ptr->stat(channel_context<protocol::udp>::BOUND);
 
 			ch_ctx_ptr->done(false); // reset context to 'not done'.
 			// <-- inbound
@@ -174,8 +212,9 @@ private:
 
 	void fire_channel_connected(udp_channel_context_ptr ch_ctx_ptr, std::function<read_complete_handler> read_handler) {
 		ch_ctx_ptr->handler_strand().post([this, ch_ctx_ptr, read_handler]() {
-			if (!ch_ctx_ptr->set_stat_if_possible(channel_context<protocol::udp>::CONNECTED))
+			if (!ch_ctx_ptr->settable_stat(channel_context<protocol::udp>::CONNECTED))
 				return;
+			ch_ctx_ptr->stat(channel_context<protocol::udp>::CONNECTED);
 
 			ch_ctx_ptr->done(false); // reset context to 'not done'.
 			// <-- inbound
@@ -191,7 +230,7 @@ private:
 		});
 	}
 
-	virtual void fire_channel_read(udp_channel_context_base_ptr ch_ctx_ptr, util::streambuf_ptr& sb_ptr) {
+	virtual void fire_channel_read(udp_channel_context_base_ptr ch_ctx_ptr, util::streambuf_ptr& sb_ptr) override {
 		auto ep = static_cast<udp_channel_context*>(ch_ctx_ptr.get())->sender();
 		ip_port ip(ep.address(), ep.port());
 
@@ -213,7 +252,7 @@ private:
 		});
 	}
 
-	virtual void fire_channel_write(udp_channel_context_base_ptr ch_ctx_ptr, object_ptr data) {
+	virtual void fire_channel_write(udp_channel_context_base_ptr ch_ctx_ptr, object_ptr data) override {
 		ch_ctx_ptr->handler_strand().post([this, ch_ctx_ptr, data]() {
 			ch_ctx_ptr->done(false); // reset context to 'not done'.
 
@@ -268,7 +307,7 @@ private:
 		});
 	}
 
-	virtual void fire_channel_written(udp_channel_context_base_ptr ch_ctx_ptr, std::size_t bytes_transferred, util::streambuf_ptr sb_ptr) {
+	virtual void fire_channel_written(udp_channel_context_base_ptr ch_ctx_ptr, std::size_t bytes_transferred, util::streambuf_ptr sb_ptr) override {
 		ch_ctx_ptr->handler_strand().post([this, ch_ctx_ptr, bytes_transferred, sb_ptr](){
 			ch_ctx_ptr->done(false); // reset context to 'not done'.
 			// <-- inbound
@@ -283,12 +322,12 @@ private:
 		});
 	}
 
-	virtual void fire_channel_disconnected(udp_channel_context_base_ptr ch_ctx_ptr) {
+	virtual void fire_channel_disconnected(udp_channel_context_base_ptr ch_ctx_ptr) override {
 		ch_ctx_ptr->handler_strand().post([this, ch_ctx_ptr](){
 			// in case you called close() yourself, the state is already disconnected,
 			// and fire_channel_disconnected() is already called so it should't be called again.
 			if (ch_ctx_ptr->stat() == channel_context<protocol::udp>::CONNECTED) {
-				ch_ctx_ptr->set_stat_if_possible(channel_context<protocol::udp>::DISCONNECTED);
+				ch_ctx_ptr->stat(channel_context<protocol::udp>::DISCONNECTED);
 
 				ch_ctx_ptr->done(false); // reset context to 'not done'.
 				// <-- inbound
@@ -303,20 +342,16 @@ private:
 			}
 
 			// close channel
-			try {
-				auto ch_id = ch_ctx_ptr->channel_id();
-				ch_ctx_ptr->close_immediately();
-				{
-					std::lock_guard<std::mutex> lock(_shared_mutex);
-					_channel_contexts.erase(ch_id);
-				}
-			} catch (const std::exception&) {
-				// ignore all errors even if the above codes causes an error
+			auto ch_id = ch_ctx_ptr->channel_id();
+			ch_ctx_ptr->close_immediately();
+			{
+				std::lock_guard<std::mutex> lock(_shared_mutex);
+				_channel_contexts.erase(ch_id);
 			}
 		});
 	}
 
-	virtual void fire_channel_close(udp_channel_context_base_ptr ch_ctx_ptr) {
+	virtual void fire_channel_close(udp_channel_context_base_ptr ch_ctx_ptr) override {
 		fire_channel_disconnected(ch_ctx_ptr);
 	}
 
