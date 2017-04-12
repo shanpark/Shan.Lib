@@ -30,8 +30,8 @@ private:
 		return std::make_shared<tcp_channel_context>(std::move(_new_channel), this);
 	}
 
-	virtual void new_channel_accepted(tcp_channel_context_base_ptr tcp_ch_ctx_base_ptr) override {
-		fire_channel_connected(tcp_ch_ctx_base_ptr, std::bind(&tcp_server::read_complete, this, std::placeholders::_1, std::placeholders::_2, tcp_ch_ctx_base_ptr));
+	virtual void new_channel_accepted(tcp_channel_context_base_ptr ch_ctx_ptr) override {
+		fire_channel_connected(ch_ctx_ptr, std::bind(&tcp_server::read_complete, this, std::placeholders::_1, std::placeholders::_2, ch_ctx_ptr));
 	}
 
 private:

@@ -15,7 +15,7 @@ namespace net {
 class context_base : public object {
 public:
 	context_base(asio::io_service& io_service)
-	: _done(false), _stat(CREATED), _handler_strand(io_service) {}
+	: _done(false), _connected(false), _stat(CREATED) {}
 
 	void done(bool done) {
 		_done = done;
@@ -38,11 +38,17 @@ protected:
 	};
 
 	bool settable_stat(uint8_t s) {
-		if (s > _stat) { // the state can not proceed reverse direction.
-			_stat = s;
+		if (_stat < s) // the state can not proceed reverse direction.
 			return true;
-		}
 		return false;
+	}
+
+	bool connected() {
+		return _connected;
+	}
+
+	void connected(bool c) {
+		_connected = c;
 	}
 
 	uint8_t stat() {
@@ -53,14 +59,10 @@ protected:
 		_stat = s;
 	}
 
-	asio::io_service::strand& handler_strand() {
-		return _handler_strand;
-	}
-
 protected:
 	bool _done;
+	bool _connected;
 	uint8_t _stat;
-	asio::io_service::strand _handler_strand;
 };
 
 } // namespace net

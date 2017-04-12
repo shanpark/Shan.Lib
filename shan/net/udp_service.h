@@ -35,12 +35,19 @@ public:
 	}
 
 	void stop() noexcept {
-		std::lock_guard<std::mutex> lock(_service_mutex);
-		if (is_running()) {
-			service_base::stop(); // no more handler will be called.
-			
-			_resolver_ptr = nullptr; // release ownership
-			_service_cv.notify_all();
+		while (is_running()) {
+			if (_service_mutex.try_lock()) {
+				std::lock_guard<std::mutex> lock(_service_mutex, std::adopt_lock);
+				if (is_running()) {
+					service_base::stop(); // no more handler will be called.
+
+					_resolver_ptr = nullptr; // release ownership
+					_service_cv.notify_all();
+				}
+			}
+			else {
+				std::this_thread::yield();
+			}
 		}
 	}
 
@@ -72,9 +79,9 @@ public:
 				decltype(_channel_contexts)::iterator old;
 				{
 					std::lock_guard<std::mutex> lock(_shared_mutex);
-					if ((old = _channel_contexts.find(pair.first)) != _channel_contexts.end()) {
+					if ((old = _channel_contexts.find(ch_ctx_ptr->channel_id())) != _channel_contexts.end()) {
 						old->second->close_immediately(); // close old context;
-						_channel_contexts.erase(pair.first);
+						_channel_contexts.erase(ch_ctx_ptr->channel_id());
 					}
 				}
 				ret.second = false;
@@ -86,11 +93,12 @@ public:
 			}
 			else { // successfully inserted.
 				ch_ctx_ptr->bind(local_port);
-				fire_channel_bound(ch_ctx_ptr);
 				if ((remote_address.length() == 0) || (remote_port == 0)) {
-					ch_ctx_ptr->read(std::bind(&udp_service::read_complete, this, std::placeholders::_1, std::placeholders::_2, ch_ctx_ptr));
+					fire_channel_bound(ch_ctx_ptr, true, std::bind(&udp_service::read_complete, this, std::placeholders::_1, std::placeholders::_2, ch_ctx_ptr));
 				}
 				else {
+					fire_channel_bound(ch_ctx_ptr, false, std::bind(&udp_service::read_complete, this, std::placeholders::_1, std::placeholders::_2, ch_ctx_ptr));
+
 					asio::ip::udp::resolver::query query(remote_address, std::to_string(remote_port));
 					_resolver_ptr->async_resolve(query, std::bind(&udp_service::resolve_complete, this, std::placeholders::_1, std::placeholders::_2, ch_ctx_ptr));
 				}
@@ -116,9 +124,9 @@ public:
 				decltype(_channel_contexts)::iterator old;
 				{
 					std::lock_guard<std::mutex> lock(_shared_mutex);
-					if ((old = _channel_contexts.find(pair.first)) != _channel_contexts.end()) {
+					if ((old = _channel_contexts.find(ch_ctx_ptr->channel_id())) != _channel_contexts.end()) {
 						old->second->close_immediately(); // close old context;
-						_channel_contexts.erase(pair.first);
+						_channel_contexts.erase(ch_ctx_ptr->channel_id());
 					}
 				}
 				ret.second = false;
@@ -130,14 +138,15 @@ public:
 			}
 			else { // successfully inserted.
 				ch_ctx_ptr->bind(local_port);
-				fire_channel_bound(ch_ctx_ptr);
 				if (!destination.is_valid()) {
-					ch_ctx_ptr->read(std::bind(&udp_service::read_complete, this, std::placeholders::_1, std::placeholders::_2, ch_ctx_ptr));
+					fire_channel_bound(ch_ctx_ptr, true, std::bind(&udp_service::read_complete, this, std::placeholders::_1, std::placeholders::_2, ch_ctx_ptr));
 				}
 				else { // destination is already resolved. don't need to resolve address.
+					fire_channel_bound(ch_ctx_ptr, false, std::bind(&udp_service::read_complete, this, std::placeholders::_1, std::placeholders::_2, ch_ctx_ptr));
+
 					asio::ip::udp::resolver::iterator end;
 					// call base's connect method.
-					static_cast<udp_channel_context_base*>(ch_ctx_ptr.get())->connect(destination.ip(), destination.port(), std::bind(&udp_service::connect_complete, this, std::placeholders::_1, end, ch_ctx_ptr));
+					static_cast<udp_channel_context_base*>(ch_ctx_ptr.get())->connect(destination, std::bind(&udp_service::connect_complete, this, std::placeholders::_1, end, ch_ctx_ptr));
 				}
 			}
 		}
@@ -166,10 +175,6 @@ public:
 	}
 
 private:
-	virtual bool is_running() override {
-		return static_cast<bool>(_resolver_ptr);
-	}
-
 	void resolve_complete(const asio::error_code& error, asio::ip::udp::resolver::iterator it, udp_channel_context_ptr ch_ctx_ptr) {
 		if (error) {
 			fire_channel_exception_caught(ch_ctx_ptr, resolver_error("fail to resolve address"));
@@ -191,11 +196,14 @@ private:
 		}
 	}
 
-	void fire_channel_bound(udp_channel_context_ptr ch_ctx_ptr) {
-		ch_ctx_ptr->handler_strand().post([this, ch_ctx_ptr]() {
+	void fire_channel_bound(udp_channel_context_ptr ch_ctx_ptr, bool call_read, std::function<read_complete_handler> read_handler) {
+		ch_ctx_ptr->handler_strand().post([this, ch_ctx_ptr, call_read, read_handler]() {
 			if (!ch_ctx_ptr->settable_stat(channel_context<protocol::udp>::BOUND))
 				return;
 			ch_ctx_ptr->stat(channel_context<protocol::udp>::BOUND);
+
+			if (call_read)
+				ch_ctx_ptr->read(read_handler); // handler보다 먼저 호출해야 핸들러에서 호출하는 close 등의 동작을 감지할 수 있다.
 
 			ch_ctx_ptr->done(false); // reset context to 'not done'.
 			// <-- inbound
@@ -215,6 +223,9 @@ private:
 			if (!ch_ctx_ptr->settable_stat(channel_context<protocol::udp>::CONNECTED))
 				return;
 			ch_ctx_ptr->stat(channel_context<protocol::udp>::CONNECTED);
+			ch_ctx_ptr->connected(true);
+
+			ch_ctx_ptr->read(read_handler); // handler보다 먼저 호출해야 핸들러에서 호출하는 close 등의 동작을 감지할 수 있다.
 
 			ch_ctx_ptr->done(false); // reset context to 'not done'.
 			// <-- inbound
@@ -226,16 +237,17 @@ private:
 			} catch (const std::exception& e) {
 				fire_channel_exception_caught(ch_ctx_ptr, channel_error(std::string("An exception has thrown in channel_connected handler. (") + e.what() + ")"));
 			}
-			ch_ctx_ptr->read(read_handler);
 		});
 	}
 
-	virtual void fire_channel_read(udp_channel_context_base_ptr ch_ctx_ptr, util::streambuf_ptr& sb_ptr) override {
+	virtual void fire_channel_read(udp_channel_context_base_ptr ch_ctx_ptr, util::streambuf_ptr& sb_ptr, std::function<read_complete_handler> read_handler) override {
 		auto ep = static_cast<udp_channel_context*>(ch_ctx_ptr.get())->sender();
 		ip_port ip(ep.address(), ep.port());
 
-		ch_ctx_ptr->handler_strand().post([this, ch_ctx_ptr, sb_ptr, ip]() { //
+		ch_ctx_ptr->handler_strand().post([this, ch_ctx_ptr, sb_ptr, ip, read_handler]() { //
 			ch_ctx_ptr->done(false); // reset context to 'not done'.
+
+			ch_ctx_ptr->read(read_handler); // handler보다 먼저 호출해야 핸들러에서 호출하는 close 등의 동작을 감지할 수 있다.
 
 			auto object_ptr = std::static_pointer_cast<object>(sb_ptr);
 			// <-- inbound
@@ -319,15 +331,19 @@ private:
 			} catch (const std::exception& e) {
 				fire_channel_exception_caught(ch_ctx_ptr, channel_error(std::string("An exception has thrown in channel_written handler. (") + e.what() + ")"));
 			}
+
+			ch_ctx_ptr->write_next_streambuf(std::bind(&udp_service::write_complete, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, ch_ctx_ptr));
 		});
 	}
 
 	virtual void fire_channel_disconnected(udp_channel_context_base_ptr ch_ctx_ptr) override {
 		ch_ctx_ptr->handler_strand().post([this, ch_ctx_ptr](){
-			// in case you called close() yourself, the state is already disconnected,
-			// and fire_channel_disconnected() is already called so it should't be called again.
-			if (ch_ctx_ptr->stat() == channel_context<protocol::udp>::CONNECTED) {
-				ch_ctx_ptr->stat(channel_context<protocol::udp>::DISCONNECTED);
+			// call channel_disconnected() handler, if needed
+			if (ch_ctx_ptr->connected()) {
+				ch_ctx_ptr->connected(false);
+
+				if (ch_ctx_ptr->settable_stat(channel_context<protocol::udp>::DISCONNECTED))
+					ch_ctx_ptr->stat(channel_context<protocol::udp>::DISCONNECTED);
 
 				ch_ctx_ptr->done(false); // reset context to 'not done'.
 				// <-- inbound
@@ -341,9 +357,12 @@ private:
 				}
 			}
 
-			// close channel
-			auto ch_id = ch_ctx_ptr->channel_id();
-			ch_ctx_ptr->close_immediately();
+			// close channel, if needed
+			std::size_t ch_id = ch_ctx_ptr->channel_id();
+			if (ch_ctx_ptr->settable_stat(channel_context<protocol::udp>::CLOSED))
+				ch_ctx_ptr->close_immediately();
+
+			// erase context
 			{
 				std::lock_guard<std::mutex> lock(_shared_mutex);
 				_channel_contexts.erase(ch_id);
@@ -352,7 +371,12 @@ private:
 	}
 
 	virtual void fire_channel_close(udp_channel_context_base_ptr ch_ctx_ptr) override {
-		fire_channel_disconnected(ch_ctx_ptr);
+		ch_ctx_ptr->handler_strand().post([this, ch_ctx_ptr](){
+			if ((ch_ctx_ptr->stat() >= channel_context<protocol::udp>::OPEN) &&
+				(ch_ctx_ptr->stat() < channel_context<protocol::udp>::CLOSED)) {
+				ch_ctx_ptr->close_gracefully(std::bind(&udp_service::shutdown_complete, this, std::placeholders::_1, ch_ctx_ptr));
+			}
+		});
 	}
 
 private:

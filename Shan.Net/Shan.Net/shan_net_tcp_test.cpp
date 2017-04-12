@@ -3,7 +3,7 @@
 //  Shan.Net
 //
 //  Created by Sung Han Park on 2017. 3. 29..
-//  Copyright © 2017년 Sung Han Park. All rights reserved.
+//  Copyright © 2017 Sung Han Park. All rights reserved.
 //
 
 #include <stdio.h>
@@ -70,9 +70,9 @@ class channel_coder : public tcp_channel_handler {
 
 		auto sb_ptr = std::make_shared<shan::util::streambuf>(sizeof(std::time_t));
 		if (sizeof(std::time_t) == 4)
-			sb_ptr->write_int32(time_ptr->get_time());
+			sb_ptr->write_int32(static_cast<int32_t>(time_ptr->get_time()));
 		else
-			sb_ptr->write_int64(time_ptr->get_time());
+			sb_ptr->write_int64(static_cast<int32_t>(time_ptr->get_time()));
 
 		data = sb_ptr; // return new converted object.
 	}
@@ -96,11 +96,13 @@ public:
 	}
 
 	virtual void channel_connected(tcp_channel_context_base* ctx) override {
-		std::lock_guard<std::mutex> _lock(_mutex);
-		cout << "serv_ch_handler::" << "channel_connected(" << ctx->channel_id() << ") called" << endl;
+		{
+			std::lock_guard<std::mutex> _lock(_mutex);
+			cout << "serv_ch_handler::" << "channel_connected(" << ctx->channel_id() << ") called" << endl;
+		}
+
 		auto data = std::make_shared<unix_time>(3000);
 		ctx->write(data);
-		ctx->done(true);
 	}
 
 	virtual void channel_read(tcp_channel_context_base* ctx, shan::object_ptr& data) override {
@@ -117,19 +119,23 @@ public:
 		std::lock_guard<std::mutex> _lock(_mutex);
 		auto sb_ptr = static_cast<shan::util::streambuf*>(data.get());
 		cout << "serv_ch_handler::" << "channel_write() - " << sb_ptr->in_size() << endl;
-//		ctx->close(); // 여기서 close를 하면 데이터는 전송되지 않는다.
 	}
 
 	virtual void channel_written(tcp_channel_context_base* ctx, std::size_t bytes_transferred, shan::util::streambuf_ptr sb_ptr) override {
-		std::lock_guard<std::mutex> _lock(_mutex);
-		cout << "serv_ch_handler::" << "channel_written() - " << bytes_transferred << endl;
+		{
+			std::lock_guard<std::mutex> _lock(_mutex);
+			cout << "serv_ch_handler::" << "channel_written() - " << bytes_transferred << endl;
+		}
+
 		ctx->close();
 	}
 
 	virtual void channel_disconnected(tcp_channel_context_base* ctx) override {
 		static int c = 0;
-		std::lock_guard<std::mutex> _lock(_mutex);
-		cout << "serv_ch_handler::" << "channel_disconnected() called:" << ++c << endl;
+		{
+			std::lock_guard<std::mutex> _lock(_mutex);
+			cout << "serv_ch_handler::" << "channel_disconnected() called:" << ++c << endl;
+		}
 
 		if (c == 4)
 			serv_p->stop();
@@ -159,11 +165,13 @@ public:
 	}
 
 	virtual void channel_read(tcp_channel_context_base* ctx, shan::object_ptr& data) override {
-		std::lock_guard<std::mutex> _lock(_mutex);
-		cout << "cli_ch_handler::" << "channel_read() called" << endl;
-		auto time = static_cast<unix_time*>(data.get());
-		cout << "time:" << time->get_time() << endl;
-		ctx->close();
+		{
+			std::lock_guard<std::mutex> _lock(_mutex);
+			cout << "cli_ch_handler::" << "channel_read() called" << endl;
+			auto time = static_cast<unix_time*>(data.get());
+			cout << "time:" << time->get_time() << endl;
+		}
+//		ctx->close();
 	}
 
 	virtual void channel_rdbuf_empty(tcp_channel_context_base* ctx) override {
@@ -184,8 +192,10 @@ public:
 
 	virtual void channel_disconnected(tcp_channel_context_base* ctx) override {
 		static int c = 0;
-		std::lock_guard<std::mutex> _lock(_mutex);
-		cout << "cli_ch_handler::" << "channel_disconnected() called:" << ++c << endl;
+		{
+			std::lock_guard<std::mutex> _lock(_mutex);
+			cout << "cli_ch_handler::" << "channel_disconnected() called:" << ++c << endl;
+		}
 
 		if ((c % 2) == 0)
 			cli_p->stop(); // stop()호출 뒤에 발생되는 이벤트는 핸들러 호출이 되지 않는다.
@@ -210,6 +220,7 @@ void shan_net_tcp_test() {
 		cli.connect(ip_port("127.0.0.1", 10999));
 		cli.wait_stop();
 	}
+
 	{
 		shan::net::tcp_client cli;
 		cli.add_channel_handler(new channel_coder()); //

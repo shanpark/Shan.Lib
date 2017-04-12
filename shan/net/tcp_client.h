@@ -25,6 +25,15 @@ private:
 	virtual void new_channel_connected(tcp_channel_context_base_ptr ch_ctx_ptr) override {
 		fire_channel_connected(ch_ctx_ptr, std::bind(&tcp_client::read_complete, this, std::placeholders::_1, std::placeholders::_2, ch_ctx_ptr));
 	}
+
+	virtual void resolve_complete(const asio::error_code& error, asio::ip::tcp::resolver::iterator it, tcp_channel_context_base_ptr ch_ctx_ptr) override {
+		if (error) {
+			fire_channel_exception_caught(ch_ctx_ptr, resolver_error("fail to resolve address"));
+		}
+		else {
+			static_cast<tcp_channel_context*>(ch_ctx_ptr.get())->connect(it, std::bind(&tcp_client::connect_complete, this, std::placeholders::_1, std::placeholders::_2, ch_ctx_ptr));
+		}
+	}
 };
 
 } // namespace net

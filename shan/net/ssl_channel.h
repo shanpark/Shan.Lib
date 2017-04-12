@@ -21,17 +21,16 @@ class ssl_channel : public channel_base<protocol::tcp> {
 public:
 	ssl_channel(asio::io_service& io_service, asio::ssl::context& ssl_context, std::size_t buffer_base_size)
 	: _ssl_stream(io_service, ssl_context)
-	, _read_sb_ptr(streambuf_pool::get_object(buffer_base_size))
-	, _write_strand(_ssl_stream.get_io_service()) {}
+	, _read_sb_ptr(streambuf_pool::get_object(buffer_base_size)) {}
 	
 	virtual ~ssl_channel() {
 		if (socket().is_open())
-			close();
+			close_immediately();
 		streambuf_pool::return_object(_read_sb_ptr);
 	}
 
 	virtual std::size_t id() const override {
-		return static_cast<std::size_t>(const_cast<ssl_channel*>(this)->socket().native_handle());
+		return reinterpret_cast<std::size_t>(const_cast<ssl_channel*>(this));
 	}
 
 private:
@@ -39,17 +38,35 @@ private:
 		socket().open((v == ip::v6) ? asio::ip::tcp::v6() : asio::ip::tcp::v4());
 	}
 
-	virtual void close() noexcept override {
+	virtual void close_gracefully(std::function<shutdown_complete_handler> shutdown_handler) noexcept override {
+		asio::error_code ec;
+		if (socket().is_open())
+			ssl_stream().async_shutdown(std::bind(&ssl_channel::shutdown_complete, this, std::placeholders::_1, shutdown_handler));
+	}
+
+	virtual void close_immediately() noexcept override {
 		asio::error_code ec;
 		if (socket().is_open()) {
-			ssl_stream().shutdown(ec); // Note: You must use asio::ssl::stream's shutdown. not a lowest_layer's shutdown.
+			ssl_stream().shutdown(ec);
+//			socket().shutdown(asio::socket_base::shutdown_both, ec);
 			socket().close(ec); // Note that, even if the function indicates an error, the underlying descriptor is closed.
 		}
 	}
 
-	virtual void connect(const std::string& address, uint16_t port, std::function<connect_complete_handler> connect_handler) override {
-		asio::ip::tcp::endpoint ep(asio::ip::address::from_string(address), port);
+	virtual void close_without_shutdown() noexcept override {
+		asio::error_code ec;
+		if (socket().is_open()) {
+			socket().close(ec); // Note that, even if the function indicates an error, the underlying descriptor is closed.
+		}
+	}
+
+	virtual void connect(const ip_port& destination, std::function<connect_complete_handler> connect_handler) override {
+		asio::ip::tcp::endpoint ep(asio::ip::address::from_string(destination.ip()), destination.port());
 		socket().async_connect(ep, connect_handler);
+	}
+
+	void connect(asio::ip::tcp::resolver::iterator it, std::function<tcp_connect_complete_handler> connect_handler) {
+		asio::async_connect(socket(), it, connect_handler);
 	}
 
 	virtual void read(std::function<read_complete_handler> read_handler) noexcept override {
@@ -58,21 +75,26 @@ private:
 	}
 
 	virtual void write_streambuf(util::streambuf_ptr write_sb_ptr, std::function<write_complete_handler> write_handler) override {
-		_write_strand.post([this, write_sb_ptr, write_handler]() {
-			_write_buf_queue.push_back(write_sb_ptr);
+		_write_buf_queue.push_back(write_sb_ptr);
 
-			if (_write_buf_queue.size() == 1)
-				asio::async_write(ssl_stream(), asio::buffer(write_sb_ptr->in_ptr(), write_sb_ptr->in_size()),
-								  std::bind(&ssl_channel::write_complete, this, std::placeholders::_1, std::placeholders::_2, write_sb_ptr, write_handler));
-		});
+		if (_write_buf_queue.size() == 1)
+			asio::async_write(ssl_stream(), asio::buffer(write_sb_ptr->in_ptr(), write_sb_ptr->in_size()),
+							  std::bind(&ssl_channel::write_complete, this, std::placeholders::_1, std::placeholders::_2, write_sb_ptr, write_handler));
+	}
+
+	virtual void write_next_streambuf(std::function<write_complete_handler> write_handler) override {
+//		assert(_write_buf_queue.front() == write_sb_ptr);
+		_write_buf_queue.pop_front();
+
+		if (!_write_buf_queue.empty()) {
+			util::streambuf_ptr next_buf_ptr = _write_buf_queue.front();
+			asio::async_write(ssl_stream(), asio::buffer(next_buf_ptr->in_ptr(), next_buf_ptr->in_size()),
+							  std::bind(&ssl_channel::write_complete, this, std::placeholders::_1, std::placeholders::_2, next_buf_ptr, write_handler));
+		}
 	}
 
 	virtual asio::io_service& io_service() override {
 		return ssl_stream().get_io_service();
-	}
-
-	void handshake(asio::ssl::stream_base::handshake_type type, const std::function<handshake_complete_hander>& handshake_handler) {
-		ssl_stream().async_handshake(type, handshake_handler);
 	}
 
 	asio::ip::tcp::socket& socket() {
@@ -81,6 +103,10 @@ private:
 
 	asio::ssl::stream<asio::ip::tcp::socket>& ssl_stream() {
 		return _ssl_stream;
+	}
+
+	void handshake(asio::ssl::stream_base::handshake_type type, const std::function<handshake_complete_hander>& handshake_handler) {
+		ssl_stream().async_handshake(type, handshake_handler);
 	}
 
 	void read_complete(const asio::error_code& error, std::size_t bytes_transferred, std::function<read_complete_handler> read_handler) {
@@ -94,17 +120,15 @@ private:
 	}
 
 	void write_complete(const asio::error_code& error, std::size_t bytes_transferred, util::streambuf_ptr write_sb_ptr, std::function<write_complete_handler> write_handler) {
-		_write_strand.post([this, error, bytes_transferred, write_sb_ptr, write_handler]() {
-			assert(_write_buf_queue.front() == write_sb_ptr);
-			_write_buf_queue.pop_front();
+		write_handler(error, bytes_transferred, write_sb_ptr);
+	}
 
-			write_handler(error, bytes_transferred, write_sb_ptr);
+	void shutdown_complete(const asio::error_code& error, std::function<shutdown_complete_handler> shutdown_handler) {
+		// don't care error
 
-			if (!_write_buf_queue.empty()) {
-				util::streambuf_ptr next_buf_ptr = _write_buf_queue.front();
-				asio::async_write(ssl_stream(), asio::buffer(next_buf_ptr->in_ptr(), next_buf_ptr->in_size()), std::bind(&ssl_channel::write_complete, this, std::placeholders::_1, std::placeholders::_2, next_buf_ptr, write_handler));
-			}
-		});
+		asio::error_code ec;
+//		socket().close(ec); // Note that, even if the function indicates an error, the underlying descriptor is closed.
+		shutdown_handler(true);
 	}
 
 private:
@@ -112,7 +136,6 @@ private:
 
 	util::streambuf_ptr _read_sb_ptr;
 	std::deque<util::streambuf_ptr> _write_buf_queue;
-	asio::io_service::strand _write_strand;
 };
 
 using ssl_channel_ptr = std::unique_ptr<ssl_channel>;

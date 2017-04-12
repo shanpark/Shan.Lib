@@ -24,6 +24,16 @@ private:
 		return _channel_ptr.get();
 	}
 
+	virtual void close_gracefully(std::function<shutdown_complete_handler> shutdown_handler) noexcept override {
+		_channel_ptr->close_gracefully(shutdown_handler);
+	}
+
+	void connect(asio::ip::tcp::resolver::iterator it, std::function<tcp_connect_complete_handler> connect_handler) {
+		handler_strand().post([this, it, connect_handler](){
+			_channel_ptr->connect(it, connect_handler);
+		});
+	}
+
 	void handshake(asio::ssl::stream_base::handshake_type type, const std::function<handshake_complete_hander>& handshake_handler) {
 		_channel_ptr->handshake(type, handshake_handler);
 	}

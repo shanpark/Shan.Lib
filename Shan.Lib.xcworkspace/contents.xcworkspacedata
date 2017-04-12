@@ -2,6 +2,12 @@
 <Workspace
    version = "1.0">
    <FileRef
+      location = "group:SSLClient/SSLClient.xcodeproj">
+   </FileRef>
+   <FileRef
+      location = "group:SSLServer/SSLServer.xcodeproj">
+   </FileRef>
+   <FileRef
       location = "group:Shan.Net/Shan.Net.xcodeproj">
    </FileRef>
    <FileRef

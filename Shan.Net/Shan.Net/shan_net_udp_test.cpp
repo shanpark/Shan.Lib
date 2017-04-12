@@ -3,7 +3,7 @@
 //  Shan.Net
 //
 //  Created by Sung Han Park on 2017. 3. 29..
-//  Copyright © 2017년 Sung Han Park. All rights reserved.
+//  Copyright © 2017 Sung Han Park. All rights reserved.
 //
 
 #include <stdio.h>
@@ -54,9 +54,9 @@ class channel_coder_u : public udp_channel_handler {
 
 		auto sb_ptr = std::make_shared<shan::util::streambuf>(sizeof(std::time_t));
 		if (sizeof(std::time_t) == 4)
-			sb_ptr->write_int32(time_ptr->get_time());
-		else
-			sb_ptr->write_int64(time_ptr->get_time());
+			sb_ptr->write_int32(static_cast<int32_t>(time_ptr->get_time()));
+			else
+				sb_ptr->write_int64(static_cast<int32_t>(time_ptr->get_time()));
 
 		data = sb_ptr; // return new converted object.
 	}
@@ -90,10 +90,12 @@ public:
 	}
 
 	virtual void channel_read_from(udp_channel_context* ctx, shan::object_ptr& data, const ip_port& from) override {
-		std::lock_guard<std::mutex> _lock(_mutex);
-		cout << "serv_ch_handler::" << "channel_read_from(" << from.ip() << ":" << from.port() << ")" << endl;
-		auto time = static_cast<unix_time*>(data.get());
-		cout << "time:" << time->get_time() << endl;
+		{
+			std::lock_guard<std::mutex> _lock(_mutex);
+			cout << "serv_ch_handler::" << "channel_read_from(" << from.ip() << ":" << from.port() << ")" << endl;
+			auto time = static_cast<unix_time*>(data.get());
+			cout << "time:" << time->get_time() << endl;
+		}
 
 //		userv_p->write_channel_to(ctx->channel_id(), from, data);
 		ctx->write_to(from, data);
@@ -108,8 +110,10 @@ public:
 
 	virtual void channel_written(udp_channel_context* ctx, std::size_t bytes_transferred, shan::util::streambuf_ptr sb_ptr) override {
 		static int c = 0;
-		std::lock_guard<std::mutex> _lock(_mutex);
-		cout << "serv_ch_handler::" << "channel_written() - " << bytes_transferred << endl;
+		{
+			std::lock_guard<std::mutex> _lock(_mutex);
+			cout << "serv_ch_handler::" << "channel_written() - " << bytes_transferred << endl;
+		}
 		c++;
 
 		if (c == 2) {
@@ -120,8 +124,10 @@ public:
 
 	virtual void channel_disconnected(udp_channel_context* ctx) override {
 		static int c = 0;
-		std::lock_guard<std::mutex> _lock(_mutex);
-		cout << "serv_ch_handler::" << "channel_disconnected() called:" << ++c << endl;
+		{
+			std::lock_guard<std::mutex> _lock(_mutex);
+			cout << "serv_ch_handler::" << "channel_disconnected() called:" << ++c << endl;
+		}
 
 //		userv_p->stop(); // stop이 호출되면 더 이상의 이벤트는 발생하지 않는다.
 	}
@@ -150,17 +156,21 @@ public:
 	}
 
 	virtual void channel_connected(udp_channel_context* ctx) override {
-		std::lock_guard<std::mutex> _lock(_mutex);
-		cout << "cli_ch_handler::" << "channel_connected(" << ctx->channel_id() << ") called" << endl;
+		{
+			std::lock_guard<std::mutex> _lock(_mutex);
+			cout << "cli_ch_handler::" << "channel_connected(" << ctx->channel_id() << ") called" << endl;
+		}
 		auto data = std::make_shared<unix_time>(3000);
 		ctx->write(data);
 	}
 
 	virtual void channel_read_from(udp_channel_context* ctx, shan::object_ptr& data, const ip_port& from) override {
-		std::lock_guard<std::mutex> _lock(_mutex);
-		cout << "cli_ch_handler::" << "channel_read_from() called" << endl;
-		auto time = static_cast<unix_time*>(data.get());
-		cout << "time:" << time->get_time() << endl;
+		{
+			std::lock_guard<std::mutex> _lock(_mutex);
+			cout << "cli_ch_handler::" << "channel_read_from() called" << endl;
+			auto time = static_cast<unix_time*>(data.get());
+			cout << "time:" << time->get_time() << endl;
+		}
 		ctx->close();
 	}
 
@@ -177,8 +187,10 @@ public:
 
 	virtual void channel_disconnected(udp_channel_context* ctx) override {
 		static int c = 0;
-		std::lock_guard<std::mutex> _lock(_mutex);
-		cout << "cli_ch_handler::" << "channel_disconnected() called:" << ++c << endl;
+		{
+			std::lock_guard<std::mutex> _lock(_mutex);
+			cout << "cli_ch_handler::" << "channel_disconnected() called:" << ++c << endl;
+		}
 
 		ucli_p->stop(); // stop()호출 뒤에 발생되는 이벤트는 핸들러 호출이 되지 않는다.
 	}

@@ -20,7 +20,7 @@ protected:
 
 	service_base(std::size_t worker_count, std::size_t buffer_base_size = default_buffer_base_size)
 	: _worker_count(worker_count), _buffer_base_size(buffer_base_size)
-    , _channel_pipeline_ptr(new channel_pipeline<Protocol>()) {}
+    , _stat(CREATED), _channel_pipeline_ptr(new channel_pipeline<Protocol>()) {}
 
 public:
 	bool add_channel_handler(channel_handler<Protocol>* ch_handler_p) {
@@ -41,7 +41,8 @@ public:
 	// wait_stop() must not be called in any handler. A deadlock will be caused.
 	void wait_stop() {
 		std::unique_lock<std::mutex> lock(_service_mutex);
-		_service_cv.wait(lock, [this](){ return !is_running(); });
+		if (is_running())
+			_service_cv.wait(lock, [this](){ return !is_running(); });
 
 		// if stop() is called in hander, a thread will be in _workers.
 		if (!_workers.empty()) {
@@ -61,7 +62,8 @@ public:
 			}
 			fire_channel_write(ch_ctx_ptr, data);
 			return true;
-		} catch (const std::exception&) {
+		} catch (const std::exception& e) {
+			std::cout << "write_channel():" << e.what() << "!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@@!@!@!@!@!@!@!@!@!@!!@!" << std::endl; //... 삭제 예정.
 			return false;
 		}
 	}
@@ -76,13 +78,17 @@ public:
 			fire_channel_close(ch_ctx_ptr);
 		} catch (const std::exception&) {
 			// if no such channel exists, nothing happens.
+			std::cout << "close_channel() exception !@!@!@!@!@!@!@!@!@!!@!@!@!@!@!@@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!" << std::endl; //... 삭제 예정.
 		}
 	}
 
 protected:
-	virtual bool is_running() = 0;
+	virtual bool is_running() {
+		return (_stat == RUNNING);
+	}
 
 	void start() {
+		_stat = RUNNING;
 		_io_service_ptr = std::unique_ptr<asio::io_service>(new asio::io_service());
 		_work_ptr = std::unique_ptr<asio::io_service::work>(new asio::io_service::work(*_io_service_ptr));
 
@@ -93,14 +99,14 @@ protected:
 
 	// Once stop() is called, the service object can not be reused.
 	void stop() {
+		_stat = STOPPED;
+
+		// class all channels
+		_close_all_channel_immediately();
+
 		_io_service_ptr->stop();
 
 		_join_worker_threads(true);
-
-		// class all channels
-		for (auto pair : _channel_contexts)
-			pair.second->close_immediately();
-		_channel_contexts.clear();
 
 		if (_workers.empty()) {
 			_work_ptr = nullptr; // release ownership
@@ -117,21 +123,20 @@ protected:
 			streambuf_pool::return_object(sb_ptr); // sb_ptr will not be used. sb_ptr should be returned to the pool.
 
 			if ((asio::error::eof == error) ||
-				(asio::error::connection_reset == error) ||
 				(asio::error::operation_aborted == error) ||
+				(asio::error::connection_reset == error) ||
 				(asio::error::shut_down == error)) {
-				fire_channel_disconnected(ch_ctx_ptr);
-				return;
+				// not treat as an error.
 			}
 			else {
 				fire_channel_exception_caught(ch_ctx_ptr, channel_error(error.message()));
 			}
+
+			fire_channel_disconnected(ch_ctx_ptr); // All errors cause end of the connection.
 		}
 		else {
-			fire_channel_read(ch_ctx_ptr, sb_ptr);
+			fire_channel_read(ch_ctx_ptr, sb_ptr, std::bind(&service_base::read_complete, this, std::placeholders::_1, std::placeholders::_2, ch_ctx_ptr));
 		}
-
-		ch_ctx_ptr->read(std::bind(&service_base::read_complete, this, std::placeholders::_1, std::placeholders::_2, ch_ctx_ptr));
 	}
 
 	void write_complete(const asio::error_code& error, std::size_t bytes_transferred, util::streambuf_ptr sb_ptr, channel_context_ptr<Protocol> ch_ctx_ptr) {
@@ -143,8 +148,21 @@ protected:
 			fire_channel_written(ch_ctx_ptr, bytes_transferred, sb_ptr);
 		}
 	}
-	
-	virtual void fire_channel_read(channel_context_ptr<Protocol> ch_ctx_ptr, util::streambuf_ptr& sb_ptr) = 0;
+
+	void shutdown_complete(bool close_channel, channel_context_ptr<Protocol> ch_ctx_ptr) {
+		if (close_channel) {
+			ch_ctx_ptr->handler_strand().post([ch_ctx_ptr](){
+				ch_ctx_ptr->close_without_shutdown(); // shutdown completed. just close without shutdown.
+
+				if (ch_ctx_ptr->connected()) {
+					std::cout << "---@@@>>> closed but connected" << std::endl;
+				}
+
+			});
+		}
+	}
+
+	virtual void fire_channel_read(channel_context_ptr<Protocol> ch_ctx_ptr, util::streambuf_ptr& sb_ptr, std::function<read_complete_handler> read_handler) = 0;
 	virtual void fire_channel_write(channel_context_ptr<Protocol> ch_ctx_ptr, object_ptr data) = 0;
 	virtual void fire_channel_written(channel_context_ptr<Protocol> ch_ctx_ptr, std::size_t bytes_transferred, util::streambuf_ptr sb_ptr) = 0;
 	virtual void fire_channel_disconnected(channel_context_ptr<Protocol> ch_ctx_ptr) = 0;
@@ -200,9 +218,24 @@ protected:
 			_workers.push_back(std::move(cur_t));
 	}
 
+	void _close_all_channel_immediately() {
+		std::lock_guard<std::mutex> lock(_shared_mutex);
+		for (auto pair : _channel_contexts)
+			pair.second->close_immediately();
+		_channel_contexts.clear();
+	}
+
+	enum : uint8_t {
+		CREATED = 0,
+		RUNNING,
+		STOPPED
+	};
+
 protected:
 	const std::size_t _worker_count;
 	const std::size_t _buffer_base_size;
+
+	uint8_t _stat;
 
 	std::unique_ptr<asio::io_service> _io_service_ptr;
 	std::unique_ptr<asio::io_service::work> _work_ptr;

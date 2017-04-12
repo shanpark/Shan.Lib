@@ -32,12 +32,19 @@ public:
 	}
 
 	void stop() {
-		std::lock_guard<std::mutex> lock(_service_mutex);
-		if (is_running()) {
-			service_base::stop(); // no more handler will be called.
+		while (is_running()) {
+			if (_service_mutex.try_lock()) {
+				std::lock_guard<std::mutex> lock(_service_mutex, std::adopt_lock);
+				if (is_running()) {
+					service_base::stop(); // no more handler will be called.
 
-			_resolver_ptr = nullptr; // release ownership
-			_service_cv.notify_all();
+					_resolver_ptr = nullptr; // release ownership
+					_service_cv.notify_all();
+				}
+			}
+			else {
+				std::this_thread::yield();
+			}
 		}
 	}
 
@@ -57,7 +64,7 @@ public:
 		if (is_running()) {
 			asio::ip::tcp::resolver::iterator end;
 			auto ch_ctx_ptr = new_channel_context();
-			ch_ctx_ptr->connect(destination.ip(), destination.port(), std::bind((&tcp_client_base::connect_complete), this, std::placeholders::_1, end, ch_ctx_ptr));
+			ch_ctx_ptr->connect(destination, std::bind((&tcp_client_base::connect_complete), this, std::placeholders::_1, end, ch_ctx_ptr));
 		}
 		else {
 			throw service_error("the service is not running.");
@@ -67,19 +74,7 @@ public:
 protected:
 	virtual tcp_channel_context_base_ptr new_channel_context() = 0;
 	virtual void new_channel_connected(tcp_channel_context_base_ptr ch_ctx_ptr) = 0;
-
-	virtual bool is_running() override {
-		return static_cast<bool>(_resolver_ptr);
-	}
-
-	void resolve_complete(const asio::error_code& error, asio::ip::tcp::resolver::iterator it, tcp_channel_context_base_ptr ch_ctx_ptr) {
-		if (error) {
-			fire_channel_exception_caught(ch_ctx_ptr, resolver_error("fail to resolve address"));
-		}
-		else {
-			static_cast<tcp_channel_context*>(ch_ctx_ptr.get())->connect(it, std::bind((&tcp_client_base::connect_complete), this, std::placeholders::_1, std::placeholders::_2, ch_ctx_ptr));
-		}
-	}
+	virtual void resolve_complete(const asio::error_code& error, asio::ip::tcp::resolver::iterator it, tcp_channel_context_base_ptr ch_ctx_ptr) = 0;
 
 	void connect_complete(const asio::error_code& error, asio::ip::tcp::resolver::iterator it, tcp_channel_context_base_ptr ch_ctx_ptr) {
 		if (error) {

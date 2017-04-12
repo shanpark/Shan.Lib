@@ -27,7 +27,18 @@ private:
 	}
 
 	virtual void new_channel_connected(tcp_channel_context_base_ptr ch_ctx_ptr) override {
-		static_cast<ssl_channel_context*>(ch_ctx_ptr.get())->handshake(asio::ssl::stream_base::client, std::bind(&ssl_client::handshake_complete, this, std::placeholders::_1, ch_ctx_ptr));
+		ch_ctx_ptr->handler_strand().post([this, ch_ctx_ptr](){
+			static_cast<ssl_channel_context*>(ch_ctx_ptr.get())->handshake(asio::ssl::stream_base::client, std::bind(&ssl_client::handshake_complete, this, std::placeholders::_1, ch_ctx_ptr));
+		});
+	}
+
+	virtual void resolve_complete(const asio::error_code& error, asio::ip::tcp::resolver::iterator it, tcp_channel_context_base_ptr ch_ctx_ptr) override {
+		if (error) {
+			fire_channel_exception_caught(ch_ctx_ptr, resolver_error("fail to resolve address"));
+		}
+		else {
+			static_cast<ssl_channel_context*>(ch_ctx_ptr.get())->connect(it, std::bind(&ssl_client::connect_complete, this, std::placeholders::_1, std::placeholders::_2, ch_ctx_ptr));
+		}
 	}
 
 	void handshake_complete(const asio::error_code& error, tcp_channel_context_base_ptr ch_ctx_ptr) {

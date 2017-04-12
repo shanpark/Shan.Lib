@@ -3,7 +3,7 @@
 //  Shan.Net
 //
 //  Created by Sung Han Park on 2017. 3. 29..
-//  Copyright © 2017년 Sung Han Park. All rights reserved.
+//  Copyright © 2017 Sung Han Park. All rights reserved.
 //
 
 #ifndef shan_net_test_h

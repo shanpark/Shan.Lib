@@ -42,8 +42,15 @@ private:
 		return _channel_ptr.get();
 	}
 
+	virtual void close_gracefully(std::function<shutdown_complete_handler> shutdown_handler) noexcept override {
+		_channel_ptr->close_gracefully(shutdown_handler);
+		shutdown_handler(false);
+	}
+
 	void connect(asio::ip::udp::resolver::iterator it, std::function<udp_connect_complete_handler> connect_handler) {
-		asio::async_connect(static_cast<udp_channel*>(channel_p())->socket(), it, connect_handler);
+		handler_strand().post([this, it, connect_handler](){
+			_channel_ptr->connect(it, connect_handler);
+		});
 	}
 
 private:

@@ -35,7 +35,9 @@ private:
 	}
 
 	virtual void new_channel_accepted(tcp_channel_context_base_ptr ch_ctx_ptr) override {
-		static_cast<ssl_channel_context*>(ch_ctx_ptr.get())->handshake(asio::ssl::stream_base::server, std::bind(&ssl_server::handshake_complete, this, std::placeholders::_1, ch_ctx_ptr));
+		ch_ctx_ptr->handler_strand().post([this, ch_ctx_ptr](){
+			static_cast<ssl_channel_context*>(ch_ctx_ptr.get())->handshake(asio::ssl::stream_base::server, std::bind(&ssl_server::handshake_complete, this, std::placeholders::_1, ch_ctx_ptr));
+		});
 	}
 
 private:

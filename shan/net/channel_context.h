@@ -21,6 +21,8 @@ class channel_context : public context_base {
 	friend class tcp_service_base;
 	friend class tcp_server_base;
 	friend class tcp_client_base;
+	friend class ssl_server;
+	friend class ssl_client;
 	friend class udp_service;
 
 public:
@@ -30,7 +32,7 @@ public:
 	channel_context(asio::io_service& io_service, service_base<Protocol>* svc_p);
 
 	~channel_context() {
-		std::cout << ">>>> channel_context destroyed" << std::endl; //... 삭제 예정.
+		std::cout << ">>>> channel_context destoryed" << std::endl;
 		streambuf_pool::return_object(_read_sb_ptr);
 	}
 
@@ -51,18 +53,28 @@ protected:
 		}
 	}
 
+	virtual void close_gracefully(std::function<shutdown_complete_handler> shutdown_handler) noexcept = 0;
+
 	void close_immediately() noexcept {
-		channel_p()->close();
+		channel_p()->close_immediately();
+		stat(CLOSED);
+	}
+
+	void close_without_shutdown() noexcept {
+		channel_p()->close_without_shutdown();
 		stat(CLOSED);
 	}
 
 	// try connect without resolving an address.
-	void connect(const std::string& address, uint16_t port, std::function<connect_complete_handler> connect_handler) {
-		channel_p()->connect(address, port, connect_handler);
+	void connect(ip_port& destination, std::function<connect_complete_handler> connect_handler) {
+		handler_strand().post([this, destination, connect_handler](){
+			channel_p()->connect(destination, connect_handler);
+		});
 	}
 
 	void read(std::function<read_complete_handler> read_handler) noexcept {
-		channel_p()->read(read_handler);
+		if ((stat() == BOUND) || (stat() == CONNECTED))
+			channel_p()->read(read_handler);
 	}
 
 	bool write_streambuf(util::streambuf_ptr write_sb_ptr, std::function<write_complete_handler> write_handler) {
@@ -74,13 +86,27 @@ protected:
 		return false;
 	}
 
+	bool write_next_streambuf(std::function<write_complete_handler> write_handler) {
+		if (stat() == CONNECTED) {
+			channel_p()->write_next_streambuf(write_handler);
+			return true;
+		}
+
+		return false;
+	}
+
 	util::streambuf_ptr read_buf() {
 		return _read_sb_ptr;
+	}
+
+	asio::io_service::strand& handler_strand() {
+		return _handler_strand;
 	}
 
 protected:
 	service_base<Protocol>* _service_p;
 	util::streambuf_ptr _read_sb_ptr;
+	asio::io_service::strand _handler_strand;
 };
 
 template<typename Protocol>
@@ -103,7 +129,7 @@ namespace net {
 
 template<typename Protocol>
 inline channel_context<Protocol>::channel_context(asio::io_service& io_service, service_base<Protocol>* svc_p)
-: context_base(io_service), _service_p(svc_p), _read_sb_ptr(streambuf_pool::get_object(svc_p->_buffer_base_size)) {}
+: context_base(io_service), _service_p(svc_p), _read_sb_ptr(streambuf_pool::get_object(svc_p->_buffer_base_size)), _handler_strand(io_service) {}
 
 template<typename Protocol>
 inline void channel_context<Protocol>::write(object_ptr data) {

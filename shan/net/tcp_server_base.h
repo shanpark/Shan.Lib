@@ -55,14 +55,21 @@ public:
 	}
 
 	void stop() {
-		std::lock_guard<std::mutex> lock(_service_mutex);
-		if (is_running()) {
-			service_base::stop(); // no more handler will be called.
+		while (is_running()) {
+			if (_service_mutex.try_lock()) {
+				std::lock_guard<std::mutex> lock(_service_mutex, std::adopt_lock);
+				if (is_running()) {
+					service_base::stop(); // no more handler will be called.
 
-			_acceptor_context_ptr->stop();
-			_acceptor_context_ptr = nullptr; // release ownership
+					_acceptor_context_ptr->stop();
+					_acceptor_context_ptr = nullptr; // release ownership
 
-			_service_cv.notify_all();
+					_service_cv.notify_all();
+				}
+			}
+			else {
+				std::this_thread::yield();
+			}
 		}
 	}
 
@@ -71,10 +78,6 @@ protected:
 	virtual asio::ip::tcp::socket& socket() = 0; // return the asio socket of the prepared channel.
 	virtual tcp_channel_context_base_ptr new_channel_context() = 0;
 	virtual void new_channel_accepted(tcp_channel_context_base_ptr ch_ctx_ptr) = 0;
-
-	virtual bool is_running() override {
-		return static_cast<bool>(_acceptor_context_ptr);
-	}
 
 	const std::vector<acceptor_pipeline::handler_ptr>& acceptor_handlers() const {
 		return _acceptor_pipeline_ptr->handlers();
@@ -93,20 +96,20 @@ protected:
 			std::pair<decltype(_channel_contexts)::iterator, bool> ret;
 			try {
 				std::lock_guard<std::mutex> lock(_shared_mutex);
-				ret = _channel_contexts.emplace(std::move(pair));
+				ret = _channel_contexts.emplace(pair);
 			} catch (...) {
 				decltype(_channel_contexts)::iterator old;
 				{
 					std::lock_guard<std::mutex> lock(_shared_mutex);
-					if ((old = _channel_contexts.find(pair.first)) != _channel_contexts.end()) {
+					if ((old = _channel_contexts.find(ch_ctx_ptr->channel_id())) != _channel_contexts.end()) {
 						old->second->close_immediately(); // close old context;
-						_channel_contexts.erase(pair.first);
+						_channel_contexts.erase(ch_ctx_ptr->channel_id());
 					}
 				}
 				ret.second = false;
 			}
 			if (!ret.second) { // not inserted. already exist. this is a critical error!
-				fire_channel_exception_caught(pair.second, channel_error("critical error. duplicate id for new channel. or not enough memory."));
+				fire_channel_exception_caught(ch_ctx_ptr, channel_error("critical error. duplicate id for new channel. or not enough memory."));
 				ch_ctx_ptr->close_immediately();
 			}
 			else { // successfully inserted
@@ -123,35 +126,31 @@ protected:
 	}
 
 	void fire_acceptor_channel_accepted(const asio::ip::tcp::endpoint& peer_endpoint) {
-		_acceptor_context_ptr->handler_strand().post([this, peer_endpoint]() {
-			acceptor_context* ctx_p = _acceptor_context_ptr.get();
-			ctx_p->done(false); // reset context to 'not done'.
-			// <-- inbound
-			auto begin = acceptor_handlers().begin();
-			auto end = acceptor_handlers().end();
-			try {
-				for (auto it = begin ; !(ctx_p->done()) && (it != end) ; it++)
-					(*it)->channel_accepted(ctx_p, peer_endpoint.address().to_string(), peer_endpoint.port());
-			} catch (const std::exception& e) {
-				fire_acceptor_exception_caught(acceptor_error(std::string("An exception has thrown in channel_accepted handler. (") + e.what() + ")"));
-			}
-		});
+		acceptor_context* ctx_p = _acceptor_context_ptr.get();
+		ctx_p->done(false); // reset context to 'not done'.
+		// <-- inbound
+		auto begin = acceptor_handlers().begin();
+		auto end = acceptor_handlers().end();
+		try {
+			for (auto it = begin ; !(ctx_p->done()) && (it != end) ; it++)
+				(*it)->channel_accepted(ctx_p, peer_endpoint.address().to_string(), peer_endpoint.port());
+		} catch (const std::exception& e) {
+			fire_acceptor_exception_caught(acceptor_error(std::string("An exception has thrown in channel_accepted handler. (") + e.what() + ")"));
+		}
 	}
 
 	void fire_acceptor_exception_caught(const acceptor_error& e) {
-		_acceptor_context_ptr->handler_strand().post([this, e]() {
-			context_base* ctx_p = _acceptor_context_ptr.get();
-			ctx_p->done(false); // reset context to 'not done'.
-			// <-- inbound
-			auto begin = acceptor_handlers().begin();
-			auto end = acceptor_handlers().end();
-			try {
-				for (auto it = begin ; !(ctx_p->done()) && (it != end) ; it++)
-					(*it)->exception_caught(ctx_p, e);
-			} catch (const std::exception& e2) {
-				fire_acceptor_exception_caught(acceptor_error(std::string("An exception has thrown in exception_caught handler. (") + e2.what() + ")")); // can cause infinite exception...
-			}
-		});
+		context_base* ctx_p = _acceptor_context_ptr.get();
+		ctx_p->done(false); // reset context to 'not done'.
+		// <-- inbound
+		auto begin = acceptor_handlers().begin();
+		auto end = acceptor_handlers().end();
+		try {
+			for (auto it = begin ; !(ctx_p->done()) && (it != end) ; it++)
+				(*it)->exception_caught(ctx_p, e);
+		} catch (const std::exception& e2) {
+			fire_acceptor_exception_caught(acceptor_error(std::string("An exception has thrown in exception_caught handler. (") + e2.what() + ")")); // can cause infinite exception...
+		}
 	}
 	
 protected:
