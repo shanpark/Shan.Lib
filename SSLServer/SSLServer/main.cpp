@@ -27,8 +27,6 @@ public:
 
 std::mutex _mutex;
 
-tcp_server* sserv_p;
-
 int exc = 0;
 int accpt = 0;
 int conn = 0;
@@ -171,19 +169,18 @@ bool verify_certificate(bool preverified, X509_STORE_CTX* ctx) {
 }
 
 int main(int argc, const char * argv[]) {
-//	shan::net::ssl_server serv(TLSV12);
-	shan::net::tcp_server serv;
+	shan::net::ssl_server serv(TLSV12);
+//	shan::net::tcp_server serv;
 
-//	serv.set_options(DEF_OPT | SINGLE_DH_USE | NO_SSLV2);
-//	serv.set_password_callback(get_password);
-//	serv.use_certificate_chain_file("/Users/shanpark/Documents/Shan.Lib/Shan.Net/server.pem");
-//	serv.use_private_key_file("/Users/shanpark/Documents/Shan.Lib/Shan.Net/server.pem", PEM);
-//	serv.use_tmp_dh_file("/Users/shanpark/Documents/Shan.Lib/Shan.Net/dh2048.pem");
+	serv.set_options(DEF_OPT | SINGLE_DH_USE | NO_SSLV2);
+	serv.set_password_callback(get_password);
+	serv.use_certificate_chain_file("/Users/shanpark/Documents/Shan.Lib/Shan.Net/server.pem");
+	serv.use_private_key_file("/Users/shanpark/Documents/Shan.Lib/Shan.Net/server.pem", PEM);
+	serv.use_tmp_dh_file("/Users/shanpark/Documents/Shan.Lib/Shan.Net/dh2048.pem");
 
 	serv.add_acceptor_handler(new acpt_handler_s()); // 이 핸들러는 serv가 destroy될 때 같이 해제된다. 걱정마라..
 	serv.add_channel_handler(new channel_coder_s()); //
 	serv.add_channel_handler(new serv_ch_handler_s()); //
-	sserv_p = &serv;
 	serv.start(10888);
 
 	cout << "SSLServer started()" << endl;

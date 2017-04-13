@@ -19,7 +19,7 @@ public:
 
 private:
 	virtual bool is_running() override {
-		return tcp_client_base::is_running();
+		return (_stat == RUNNING);
 	}
 
 	virtual tcp_channel_context_base_ptr new_channel_context() override {

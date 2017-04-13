@@ -118,7 +118,7 @@ public:
 
 		if (c == 2) {
 			ctx->close();
-			userv_p->stop();
+			userv_p->request_stop();
 		}
 	}
 
@@ -192,7 +192,7 @@ public:
 			cout << "cli_ch_handler::" << "channel_disconnected() called:" << ++c << endl;
 		}
 
-		ucli_p->stop(); // stop()호출 뒤에 발생되는 이벤트는 핸들러 호출이 되지 않는다.
+		ucli_p->request_stop(); // stop()호출 뒤에 발생되는 이벤트는 핸들러 호출이 되지 않는다.
 	}
 };
 

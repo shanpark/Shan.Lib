@@ -289,7 +289,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				HEADER_SEARCH_PATHS = (
 					../shan,
-					"asio-1.10.8/include",
+					"../asio-1.10.8/include",
 					/usr/local/include,
 				);
 				LIBRARY_SEARCH_PATHS = /usr/local/lib;
@@ -338,7 +338,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				HEADER_SEARCH_PATHS = (
 					../shan,
-					"asio-1.10.8/include",
+					"../asio-1.10.8/include",
 					/usr/local/include,
 				);
 				LIBRARY_SEARCH_PATHS = /usr/local/lib;

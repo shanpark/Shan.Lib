@@ -183,7 +183,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				HEADER_SEARCH_PATHS = (
-					"asio-1.10.8/include",
+					"../asio-1.10.8/include",
 					/usr/local/include,
 					../shan,
 				);
@@ -230,7 +230,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				HEADER_SEARCH_PATHS = (
-					"asio-1.10.8/include",
+					"../asio-1.10.8/include",
 					/usr/local/include,
 					../shan,
 				);
@@ -274,6 +274,7 @@
 				90CB4A8F1E9BCE0B007B51BD /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};

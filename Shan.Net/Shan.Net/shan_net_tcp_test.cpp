@@ -138,7 +138,7 @@ public:
 		}
 
 		if (c == 4)
-			serv_p->stop();
+			serv_p->request_stop();
 	}
 };
 
@@ -198,7 +198,7 @@ public:
 		}
 
 		if ((c % 2) == 0)
-			cli_p->stop(); // stop()호출 뒤에 발생되는 이벤트는 핸들러 호출이 되지 않는다.
+			cli_p->request_stop(); // stop()호출 뒤에 발생되는 이벤트는 핸들러 호출이 되지 않는다.
 	}
 };
 

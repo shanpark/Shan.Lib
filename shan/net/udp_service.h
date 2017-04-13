@@ -21,38 +21,22 @@ public:
 	: service_base<protocol::udp>(worker_count, buffer_base_size) {}
 
 	virtual ~udp_service() {
-		stop();
-		_join_worker_threads(false);
+//		if (_io_service_ptr)
+//			stop();
+//		_join_worker_threads(false);
 	}
 
-	void start() noexcept {
+	void start() {
 		std::lock_guard<std::mutex> lock(_service_mutex);
-		if (!is_running()) {
+		if (_stat == CREATED) {
 			service_base::start();
 			
 			_resolver_ptr = std::unique_ptr<asio::ip::udp::resolver>(new asio::ip::udp::resolver(*_io_service_ptr));
 		}
 	}
 
-	void stop() noexcept {
-		while (is_running()) {
-			if (_service_mutex.try_lock()) {
-				std::lock_guard<std::mutex> lock(_service_mutex, std::adopt_lock);
-				if (is_running()) {
-					service_base::stop(); // no more handler will be called.
-
-					_resolver_ptr = nullptr; // release ownership
-					_service_cv.notify_all();
-				}
-			}
-			else {
-				std::this_thread::yield();
-			}
-		}
-	}
-
 	void resolve(const std::string& domain, uint16_t port, ip_port& ip_port_out) {
-		if (is_running()) {
+		if (_stat == RUNNING) {
 			asio::error_code error;
 			asio::ip::udp::resolver::query query(domain, std::to_string(port));
 			auto it = _resolver_ptr->resolve(query, error);
@@ -65,7 +49,7 @@ public:
 	}
 
 	void bind_connect(uint16_t local_port, const std::string& remote_address = std::string(""), uint16_t remote_port = 0, ip v = ip::v4) {
-		if (is_running()) {
+		if (_stat == RUNNING) {
 			udp_channel_context_ptr ch_ctx_ptr = std::make_shared<udp_channel_context>(udp_channel_ptr(new udp_channel(asio::ip::udp::socket(*_io_service_ptr), _buffer_base_size)), this);
 
 			ch_ctx_ptr->open(v); // opened channel can only have an id.
@@ -110,7 +94,7 @@ public:
 	}
 
 	void bind_connect(uint16_t local_port, ip_port destination, ip v = ip::v4) {
-		if (is_running()) {
+		if (_stat == RUNNING) {
 			udp_channel_context_ptr ch_ctx_ptr = std::make_shared<udp_channel_context>(udp_channel_ptr(new udp_channel(asio::ip::udp::socket(*_io_service_ptr), _buffer_base_size)), this);
 
 			ch_ctx_ptr->open(v); // opened channel can only have an id.
@@ -156,7 +140,7 @@ public:
 	}
 
 	bool write_channel_to(std::size_t channel_id, const ip_port& destination, object_ptr data) {
-		if (is_running()) {
+		if (_stat == RUNNING) {
 			try {
 				typename decltype(_channel_contexts)::mapped_type ch_ctx_ptr;
 				{
@@ -175,6 +159,14 @@ public:
 	}
 
 private:
+	virtual void stop() override {
+		std::lock_guard<std::mutex> lock(_service_mutex);
+		service_base::stop(); // no more handler will be called.
+		
+		_resolver_ptr = nullptr; // release ownership
+		_service_cv.notify_all();
+	}
+
 	void resolve_complete(const asio::error_code& error, asio::ip::udp::resolver::iterator it, udp_channel_context_ptr ch_ctx_ptr) {
 		if (error) {
 			fire_channel_exception_caught(ch_ctx_ptr, resolver_error("fail to resolve address"));

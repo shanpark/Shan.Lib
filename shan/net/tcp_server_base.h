@@ -19,8 +19,9 @@ public:
 	, _acceptor_pipeline_ptr(new acceptor_pipeline()) {}
 
 	virtual ~tcp_server_base() {
-		stop();
-		_join_worker_threads(false);
+//		if (_io_service_ptr)
+//			stop();
+//		_join_worker_threads(false);
 	}
 
 	bool add_acceptor_handler(acceptor_handler* ac_handler_p) {
@@ -29,7 +30,7 @@ public:
 
 	bool add_acceptor_handler(acceptor_handler_ptr ac_handler_ptr) {
 		std::lock_guard<std::mutex> lock(_shared_mutex);
-		if (!is_running()) {
+		if (_stat == CREATED) {
 			_acceptor_pipeline_ptr->add_handler(std::move(ac_handler_ptr));
 			return true;
 		}
@@ -40,7 +41,7 @@ public:
 	void start(uint16_t port, bool reuse_addr = true, int listen_backlog = DEFAULT_BACKLOG, ip v = ip::v4) {
 		try {
 			std::lock_guard<std::mutex> lock(_service_mutex);
-			if (!is_running()) {
+			if (_stat == CREATED) {
 				service_base::start();
 
 				_acceptor_context_ptr = acceptor_context_ptr(new acceptor_context(acceptor_ptr(new acceptor(*_io_service_ptr, v))));
@@ -54,30 +55,21 @@ public:
 		}
 	}
 
-	void stop() {
-		while (is_running()) {
-			if (_service_mutex.try_lock()) {
-				std::lock_guard<std::mutex> lock(_service_mutex, std::adopt_lock);
-				if (is_running()) {
-					service_base::stop(); // no more handler will be called.
-
-					_acceptor_context_ptr->stop();
-					_acceptor_context_ptr = nullptr; // release ownership
-
-					_service_cv.notify_all();
-				}
-			}
-			else {
-				std::this_thread::yield();
-			}
-		}
-	}
-
 protected:
 	virtual void prepare_channel_for_next_accept() = 0;
 	virtual asio::ip::tcp::socket& socket() = 0; // return the asio socket of the prepared channel.
 	virtual tcp_channel_context_base_ptr new_channel_context() = 0;
 	virtual void new_channel_accepted(tcp_channel_context_base_ptr ch_ctx_ptr) = 0;
+	
+	virtual void stop() override {
+		std::lock_guard<std::mutex> lock(_service_mutex);
+		service_base::stop(); // no more handler will be called.
+		
+		_acceptor_context_ptr->stop();
+		_acceptor_context_ptr = nullptr; // release ownership
+		
+		_service_cv.notify_all();
+	}
 
 	const std::vector<acceptor_pipeline::handler_ptr>& acceptor_handlers() const {
 		return _acceptor_pipeline_ptr->handlers();

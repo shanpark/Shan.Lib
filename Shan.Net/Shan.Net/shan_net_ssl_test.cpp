@@ -139,7 +139,7 @@ public:
 		}
 
 		if (c == 2)
-			sserv_p->stop();
+			sserv_p->request_stop();
 	}
 };
 
@@ -197,7 +197,7 @@ public:
 			std::lock_guard<std::mutex> _lock(_mutex);
 			cout << "cli_ch_handler::" << "channel_disconnected() called:" << ++c << endl;
 		}
-		scli_p->stop(); // stop()호출 뒤에 발생되는 이벤트는 핸들러 호출이 되지 않는다.
+		scli_p->request_stop(); // stop()호출 뒤에 발생되는 이벤트는 핸들러 호출이 되지 않는다.
 	}
 };
 

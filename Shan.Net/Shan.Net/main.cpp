@@ -14,7 +14,7 @@
 //    삭제가 되면 io_service를 stop() 시키고 모든 스레드가 종료될 때 까지 기다렸다가 worker를 clear하고
 //    완전 종료가 되면 cv.notify_all()를 호출하고 끝낸다.
 //    stop은 req_stop()이 되겠구나..
-// 3. tcp client에서도 connecged는 됐는데 disconnected가 발생하지 않은 채로 남아있는 애들이 있던데 그것도 같은 문제인지...
+// 3. tcp client에서도 connected는 됐는데 disconnected가 발생하지 않은 채로 남아있는 애들이 있던데 그것도 같은 문제인지...
 //    남아있는 context의 상태를 보면 모두 CONNECTED(4)인 것 같다. 아닌 것을 찾지 못했음.
 //    그렇다면 read도 못했을 가능성이 있고 close도 받지 못했고 그래서 그냥 가만히 있는 것이라는 건데..
 //    실제 서비스라면 connect 후 내가 뭘 요청하거나 받아야할 데이터를 기다리거나 해서 타임 아웃을 기다리는

@@ -33,7 +33,7 @@ int dis_conn = 0;
 int rd = 0;
 int exc = 0;
 
-tcp_client* scli_p;
+ssl_client* scli_p;
 
 class channel_coder_s : public tcp_channel_handler {
 	virtual void channel_read(tcp_channel_context_base* ctx, shan::object_ptr& data) override {
@@ -87,7 +87,7 @@ public:
 		}
 
 		if (dis_conn == (CLIENT_COUNT - exc))
-			scli_p->stop(); // stop()호출 뒤에 발생되는 이벤트는 핸들러 호출이 되지 않는다.
+			scli_p->request_stop(); // stop()호출 뒤에 발생되는 이벤트는 핸들러 호출이 되지 않는다.
 	}
 
 	virtual void channel_connected(tcp_channel_context_base* ctx) override {
@@ -134,7 +134,7 @@ public:
 		}
 
 		if (dis_conn == (CLIENT_COUNT - exc))
-			scli_p->stop(); // stop()호출 뒤에 발생되는 이벤트는 핸들러 호출이 되지 않는다.
+			scli_p->request_stop(); // stop()호출 뒤에 발생되는 이벤트는 핸들러 호출이 되지 않는다.
 	}
 };
 
@@ -156,8 +156,8 @@ bool verify_certificate(bool preverified, X509_STORE_CTX* ctx) {
 }
 
 int main(int argc, const char * argv[]) {
-//	shan::net::ssl_client cli(TLSV12);
-	shan::net::tcp_client cli;
+	shan::net::ssl_client cli(TLSV12);
+//	shan::net::tcp_client cli;
 
 	cli.add_channel_handler(new channel_coder_s()); //
 	cli.add_channel_handler(new cli_ch_handler_s()); // 이 핸들러는 cli가 destroy될 때 같이 해제된다.

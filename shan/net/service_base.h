@@ -22,6 +22,11 @@ protected:
 	: _worker_count(worker_count), _buffer_base_size(buffer_base_size)
     , _stat(CREATED), _channel_pipeline_ptr(new channel_pipeline<Protocol>()) {}
 
+	virtual ~service_base() {
+		if (_stop_thread_ptr)
+			_stop_thread_ptr->join();
+	}
+	
 public:
 	bool add_channel_handler(channel_handler<Protocol>* ch_handler_p) {
 		return add_channel_handler(channel_handler_ptr<Protocol>(ch_handler_p));
@@ -29,7 +34,7 @@ public:
 	
 	bool add_channel_handler(channel_handler_ptr<Protocol> ch_handler_ptr) {
 		std::lock_guard<std::mutex> lock(_shared_mutex);
-		if (!is_running()) {
+		if (_stat == CREATED) {
 			_channel_pipeline_ptr->add_handler(std::move(ch_handler_ptr));
 			return true;
 		}
@@ -41,15 +46,17 @@ public:
 	// wait_stop() must not be called in any handler. A deadlock will be caused.
 	void wait_stop() {
 		std::unique_lock<std::mutex> lock(_service_mutex);
-		if (is_running())
-			_service_cv.wait(lock, [this](){ return !is_running(); });
-
-		// if stop() is called in hander, a thread will be in _workers.
-		if (!_workers.empty()) {
-			_join_worker_threads(false);
-
-			_work_ptr = nullptr;
-			_io_service_ptr = nullptr;
+		if ((RUNNING <= _stat) && (_stat < STOPPED))
+			_service_cv.wait(lock, [this](){ return (_stat == STOPPED); });
+	}
+	
+	void request_stop() {
+		std::lock_guard<std::mutex> lock(_service_mutex);
+		if ((_stat == RUNNING) && !_stop_thread_ptr) {
+			_stat = REQ_STOP;
+			_stop_thread_ptr = std::make_shared<std::thread>([this](){
+				stop();
+			});
 		}
 	}
 
@@ -83,9 +90,9 @@ public:
 	}
 
 protected:
-	virtual bool is_running() {
-		return (_stat == RUNNING);
-	}
+//	virtual bool is_running() {
+//		return (_stat == RUNNING);
+//	}
 
 	void start() {
 		_stat = RUNNING;
@@ -98,20 +105,18 @@ protected:
 	}
 
 	// Once stop() is called, the service object can not be reused.
-	void stop() {
+	virtual void stop() {
 		_stat = STOPPED;
-
+		
+		_io_service_ptr->stop();
+		
+		_join_worker_threads();
+		
 		// class all channels
 		_close_all_channel_immediately();
 
-		_io_service_ptr->stop();
-
-		_join_worker_threads(true);
-
-		if (_workers.empty()) {
-			_work_ptr = nullptr; // release ownership
-			_io_service_ptr = nullptr; // release ownership.
-		}
+		_work_ptr = nullptr; // release ownership
+		_io_service_ptr = nullptr; // release ownership.
 	}
 
 	const std::vector<channel_handler_ptr<Protocol>>& channel_handlers() const {
@@ -151,13 +156,16 @@ protected:
 
 	void shutdown_complete(bool close_channel, channel_context_ptr<Protocol> ch_ctx_ptr) {
 		if (close_channel) {
-			ch_ctx_ptr->handler_strand().post([ch_ctx_ptr](){
+			ch_ctx_ptr->handler_strand().post([this, ch_ctx_ptr](){
 				ch_ctx_ptr->close_without_shutdown(); // shutdown completed. just close without shutdown.
 
 				if (ch_ctx_ptr->connected()) {
-					std::cout << "---@@@>>> closed but connected" << std::endl;
+					std::shared_ptr<asio::steady_timer> timer_ptr = std::make_shared<asio::steady_timer>(*_io_service_ptr, std::chrono::milliseconds(100));
+					timer_ptr->async_wait([this, timer_ptr, ch_ctx_ptr](const asio::error_code& error){
+						if (ch_ctx_ptr->connected())
+							fire_channel_disconnected(ch_ctx_ptr);
+					});
 				}
-
 			});
 		}
 	}
@@ -198,24 +206,17 @@ protected:
 		});
 	}
 
-	void _join_worker_threads(bool skip_cur_thread) {
-		std::thread cur_t;
+	void _join_worker_threads() {
 		for (auto& t : _workers) {
 			if (t.joinable()) {
 				try {
 					t.join();
-				}
-				catch (const std::exception& e) { // A deadlock exception occurs when calling stop() within an io_service run thread.
-					if (skip_cur_thread && (t.get_id() == std::this_thread::get_id())) // current thread
-						cur_t = std::move(t); // can not join current turead, so keep this thread object.
-					else
-						throw service_error(e.what());
+				} catch (const std::exception& e) {
+					service_error(e.what());
 				}
 			}
 		}
 		_workers.clear();
-		if (cur_t.joinable()) // push again current thread object.
-			_workers.push_back(std::move(cur_t));
 	}
 
 	void _close_all_channel_immediately() {
@@ -228,6 +229,7 @@ protected:
 	enum : uint8_t {
 		CREATED = 0,
 		RUNNING,
+		REQ_STOP,
 		STOPPED
 	};
 
@@ -245,9 +247,10 @@ protected:
 	std::vector<std::thread> _workers; // protected by _mutex
 
 	std::mutex _shared_mutex; // protection for shared member.
-
+			
 	std::mutex _service_mutex; 			 // protection for service running state.
 	std::condition_variable _service_cv; //
+	std::shared_ptr<std::thread> _stop_thread_ptr; // thread
 };
 
 } // namespace net
