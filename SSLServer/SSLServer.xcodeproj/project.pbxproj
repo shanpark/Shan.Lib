@@ -8,8 +8,8 @@
 
 /* Begin PBXBuildFile section */
 		90CB4A8A1E9BCE0B007B51BD /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 90CB4A891E9BCE0B007B51BD /* main.cpp */; };
-		90CB4A931E9BCEE8007B51BD /* libcrypto.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 90CB4A911E9BCEE8007B51BD /* libcrypto.a */; };
-		90CB4A941E9BCEE8007B51BD /* libssl.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 90CB4A921E9BCEE8007B51BD /* libssl.a */; };
+		90EA25C11EA26DAF004D902F /* libcrypto.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 90EA25BF1EA26DAF004D902F /* libcrypto.a */; };
+		90EA25C21EA26DAF004D902F /* libssl.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 90EA25C01EA26DAF004D902F /* libssl.a */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -29,6 +29,8 @@
 		90CB4A891E9BCE0B007B51BD /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 		90CB4A911E9BCEE8007B51BD /* libcrypto.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libcrypto.a; path = ../../../../../usr/local/lib/libcrypto.a; sourceTree = "<group>"; };
 		90CB4A921E9BCEE8007B51BD /* libssl.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libssl.a; path = ../../../../../usr/local/lib/libssl.a; sourceTree = "<group>"; };
+		90EA25BF1EA26DAF004D902F /* libcrypto.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libcrypto.a; path = ../../../openssl_1.0.2k/lib/libcrypto.a; sourceTree = "<group>"; };
+		90EA25C01EA26DAF004D902F /* libssl.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libssl.a; path = ../../../openssl_1.0.2k/lib/libssl.a; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -36,8 +38,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				90CB4A931E9BCEE8007B51BD /* libcrypto.a in Frameworks */,
-				90CB4A941E9BCEE8007B51BD /* libssl.a in Frameworks */,
+				90EA25C11EA26DAF004D902F /* libcrypto.a in Frameworks */,
+				90EA25C21EA26DAF004D902F /* libssl.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -72,6 +74,8 @@
 		90CB4A901E9BCEE8007B51BD /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				90EA25BF1EA26DAF004D902F /* libcrypto.a */,
+				90EA25C01EA26DAF004D902F /* libssl.a */,
 				90CB4A911E9BCEE8007B51BD /* libcrypto.a */,
 				90CB4A921E9BCEE8007B51BD /* libssl.a */,
 			);
@@ -175,6 +179,7 @@
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"DEBUG=1",
 					"$(inherited)",
+					MACOS_TEST,
 				);
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
@@ -223,6 +228,7 @@
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
 				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_PREPROCESSOR_DEFINITIONS = MACOS_TEST;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
 				GCC_WARN_UNDECLARED_SELECTOR = YES;

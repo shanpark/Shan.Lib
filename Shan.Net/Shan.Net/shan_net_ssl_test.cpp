@@ -122,7 +122,7 @@ public:
 		}
 	}
 
-	virtual void channel_written(tcp_channel_context_base* ctx, std::size_t bytes_transferred, shan::util::streambuf_ptr sb_ptr) override {
+	virtual void channel_written(tcp_channel_context_base* ctx, std::size_t bytes_transferred) override {
 		{
 			std::lock_guard<std::mutex> _lock(_mutex);
 			cout << "serv_ch_handler::" << "channel_written() - " << bytes_transferred << endl;
@@ -145,7 +145,7 @@ public:
 
 class cli_ch_handler_s : public tcp_channel_handler {
 public:
-	~cli_ch_handler_s() {
+	virtual ~cli_ch_handler_s() {
 		std::lock_guard<std::mutex> _lock(_mutex);
 		cout << ">>>> cli_ch_handler destroyed" << endl;
 	};
@@ -186,7 +186,7 @@ public:
 		cout << "cli_ch_handler::" << "channel_write() - " << sb_ptr->in_size() << endl;
 	}
 
-	virtual void channel_written(tcp_channel_context_base* ctx, std::size_t bytes_transferred, shan::util::streambuf_ptr sb_ptr) override {
+	virtual void channel_written(tcp_channel_context_base* ctx, std::size_t bytes_transferred) override {
 		std::lock_guard<std::mutex> _lock(_mutex);
 		cout << "cli_ch_handler::" << "channel_written() called" << endl;
 	}
@@ -223,12 +223,21 @@ void shan_net_ssl_test() {
 	serv.set_options(DEF_OPT | SINGLE_DH_USE | NO_SSLV2);
 	serv.set_password_callback(get_password);
 
-//	serv.use_certificate_chain_file("/home/pi/Shan.Lib_test/Shan.Net/server.pem");
-//	serv.use_private_key_file("/home/pi/Shan.Lib_test/Shan.Net/server.pem", PEM);
-//	serv.use_tmp_dh_file("/home/pi/Shan.Lib_test/Shan.Net/dh2048.pem");
+#ifdef RASPI_TEST
+	serv.use_certificate_chain_file("/home/pi/Shan.Lib_test/Shan.Net/server.pem");
+	serv.use_private_key_file("/home/pi/Shan.Lib_test/Shan.Net/server.pem", PEM);
+	serv.use_tmp_dh_file("/home/pi/Shan.Lib_test/Shan.Net/dh2048.pem");
+#endif
+#ifdef MACOS_TEST
 	serv.use_certificate_chain_file("/Users/shanpark/Documents/Shan.Lib/Shan.Net/server.pem");
 	serv.use_private_key_file("/Users/shanpark/Documents/Shan.Lib/Shan.Net/server.pem", PEM);
 	serv.use_tmp_dh_file("/Users/shanpark/Documents/Shan.Lib/Shan.Net/dh2048.pem");
+#endif
+#ifdef WIN64_TEST
+	serv.use_certificate_chain_file("server.pem");
+	serv.use_private_key_file("server.pem", PEM);
+	serv.use_tmp_dh_file("dh2048.pem");
+#endif
 
 	serv.add_acceptor_handler(new acpt_handler_s()); // 이 핸들러는 serv가 destroy될 때 같이 해제된다. 걱정마라..
 	serv.add_channel_handler(new channel_coder_s()); //
@@ -248,8 +257,8 @@ void shan_net_ssl_test() {
 	}
 	{
 		shan::net::ssl_client cli(TLSV12);
-//		cli.set_verify_mode(VERIFY_PEER); // 사설 인증서는 통과 안됨.
-//		cli.set_verify_callback(verify_certificate); // 여기서 통과시키면 사설 인증서도 통과됨.
+		cli.set_verify_mode(VERIFY_PEER); // 사설 인증서는 통과 안됨.
+		cli.set_verify_callback(verify_certificate); // 여기서 통과시키면 사설 인증서도 통과됨.
 
 		cli.add_channel_handler(new channel_coder_s()); //
 		cli.add_channel_handler(new cli_ch_handler_s()); // 이 핸들러는 cli가 destroy될 때 같이 해제된다.

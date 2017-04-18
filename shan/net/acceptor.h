@@ -59,8 +59,6 @@ private:
 	asio::ip::tcp::endpoint _peer_endpoint;
 };
 
-using acceptor_ptr = std::unique_ptr<acceptor>;
-
 } // namespace net
 } // namespace shan
 

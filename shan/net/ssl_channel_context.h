@@ -25,13 +25,14 @@ private:
 	}
 
 	virtual void close_gracefully(std::function<shutdown_complete_handler> shutdown_handler) noexcept override {
+		stat(CLOSED); // set stat to closed because socket will be closed in shutdown_handler() unconditionally.
+					  // this will prevent ssl_channel from being shutdown twice.
+					  // the second call attempts to release SSL object twice. (it will make an unexpected error.)
 		_channel_ptr->close_gracefully(shutdown_handler);
 	}
 
 	void connect(asio::ip::tcp::resolver::iterator it, std::function<tcp_connect_complete_handler> connect_handler) {
-		handler_strand().post([this, it, connect_handler](){
-			_channel_ptr->connect(it, connect_handler);
-		});
+		_channel_ptr->connect(it, connect_handler);
 	}
 
 	void handshake(asio::ssl::stream_base::handshake_type type, const std::function<handshake_complete_hander>& handshake_handler) {

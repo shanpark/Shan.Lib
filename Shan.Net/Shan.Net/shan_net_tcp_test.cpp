@@ -121,7 +121,7 @@ public:
 		cout << "serv_ch_handler::" << "channel_write() - " << sb_ptr->in_size() << endl;
 	}
 
-	virtual void channel_written(tcp_channel_context_base* ctx, std::size_t bytes_transferred, shan::util::streambuf_ptr sb_ptr) override {
+	virtual void channel_written(tcp_channel_context_base* ctx, std::size_t bytes_transferred) override {
 		{
 			std::lock_guard<std::mutex> _lock(_mutex);
 			cout << "serv_ch_handler::" << "channel_written() - " << bytes_transferred << endl;
@@ -144,7 +144,7 @@ public:
 
 class cli_ch_handler : public tcp_channel_handler {
 public:
-	~cli_ch_handler() {
+	virtual ~cli_ch_handler() {
 		std::lock_guard<std::mutex> _lock(_mutex);
 		cout << ">>>> cli_ch_handler destroyed" << endl;
 	};
@@ -171,7 +171,7 @@ public:
 			auto time = static_cast<unix_time*>(data.get());
 			cout << "time:" << time->get_time() << endl;
 		}
-//		ctx->close();
+		ctx->close();
 	}
 
 	virtual void channel_rdbuf_empty(tcp_channel_context_base* ctx) override {
@@ -185,7 +185,7 @@ public:
 		cout << "cli_ch_handler::" << "channel_write() - " << sb_ptr->in_size() << endl;
 	}
 
-	virtual void channel_written(tcp_channel_context_base* ctx, std::size_t bytes_transferred, shan::util::streambuf_ptr sb_ptr) override {
+	virtual void channel_written(tcp_channel_context_base* ctx, std::size_t bytes_transferred) override {
 		std::lock_guard<std::mutex> _lock(_mutex);
 		cout << "cli_ch_handler::" << "channel_written() called" << endl;
 	}
@@ -220,7 +220,6 @@ void shan_net_tcp_test() {
 		cli.connect(ip_port("127.0.0.1", 10999));
 		cli.wait_stop();
 	}
-
 	{
 		shan::net::tcp_client cli;
 		cli.add_channel_handler(new channel_coder()); //

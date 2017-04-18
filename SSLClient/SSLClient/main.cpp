@@ -5,7 +5,6 @@
 //  Created by Sung Han Park on 2017. 4. 11..
 //  Copyright © 2017년 Sung Han Park. All rights reserved.
 //
-
 #include <iostream>
 #include <stdio.h>
 #include <iostream>
@@ -16,7 +15,11 @@
 using namespace std;
 using namespace shan::net;
 
+#ifdef RASPI_TEST
+#define CLIENT_COUNT 10000
+#else
 #define CLIENT_COUNT 50000
+#endif
 
 class unix_time : public shan::object {
 public:
@@ -83,25 +86,27 @@ public:
 		{
 			std::lock_guard<std::mutex> _lock(_mutex);
 			exc++;
-			cout << static_cast<ssl_channel_context*>(ctx)->channel_id() << ":cli_ch_handler::" << "exception_caught() - " << e.what() << "@@@@@@@@@@@@@@@@@@@@@" << endl;
+			cout << static_cast<ssl_channel_context*>(ctx)->channel_id() << ":" << std::this_thread::get_id() << ":cli_ch_handler::" << "exception_caught() - " << e.what() << "@@@@@@@@@@@@@@@@@@@@@" << endl;
 		}
 
-		if (dis_conn == (CLIENT_COUNT - exc))
+		if (dis_conn == (CLIENT_COUNT - exc)) {
+			cout << "SSLClient request stop [exc] @!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@" << endl;
 			scli_p->request_stop(); // stop()호출 뒤에 발생되는 이벤트는 핸들러 호출이 되지 않는다.
+		}
 	}
 
 	virtual void channel_connected(tcp_channel_context_base* ctx) override {
 		{
 			std::lock_guard<std::mutex> _lock(_mutex);
 			conn++;
-//			cout << static_cast<ssl_channel_context*>(ctx)->channel_id() << ":cli_ch_handler::" << "channel_connected(" << ctx->channel_id() << ") called" << endl;
+			cout << static_cast<ssl_channel_context*>(ctx)->channel_id() << ":" << std::this_thread::get_id() << ":cli_ch_handler::" << "channel_connected(" << ctx->channel_id() << ") called" << endl;
 		}
 	}
 
 	virtual void channel_read(tcp_channel_context_base* ctx, shan::object_ptr& data) override {
 		{
 			std::lock_guard<std::mutex> _lock(_mutex);
-//			cout << static_cast<ssl_channel_context*>(ctx)->channel_id() << ":cli_ch_handler::" << "channel_read() called" << endl;
+			cout << static_cast<ssl_channel_context*>(ctx)->channel_id() << ":" << std::this_thread::get_id() << ":cli_ch_handler::" << "channel_read() called" << endl;
 //			auto time = static_cast<unix_time*>(data.get());
 //			cout << "time:" << time->get_time() << endl;
 			rd++;
@@ -111,8 +116,8 @@ public:
 	}
 
 	virtual void channel_rdbuf_empty(tcp_channel_context_base* ctx) override {
-//		std::lock_guard<std::mutex> _lock(_mutex);
-//		cout << static_cast<ssl_channel_context*>(ctx)->channel_id() << ":cli_ch_handler::" << "channel_rdbuf_empty() called" << endl;
+		std::lock_guard<std::mutex> _lock(_mutex);
+		cout << static_cast<ssl_channel_context*>(ctx)->channel_id() << ":" << std::this_thread::get_id() << ":cli_ch_handler::" << "channel_rdbuf_empty() called" << endl;
 	}
 
 	virtual void channel_write(tcp_channel_context_base* ctx, shan::object_ptr& data) override {
@@ -121,7 +126,7 @@ public:
 //		cout << static_cast<ssl_channel_context*>(ctx)->channel_id() << ":cli_ch_handler::" << "channel_write() - " << sb_ptr->in_size() << endl;
 	}
 
-	virtual void channel_written(tcp_channel_context_base* ctx, std::size_t bytes_transferred, shan::util::streambuf_ptr sb_ptr) override {
+	virtual void channel_written(tcp_channel_context_base* ctx, std::size_t bytes_transferred) override {
 //		std::lock_guard<std::mutex> _lock(_mutex);
 //		cout << static_cast<ssl_channel_context*>(ctx)->channel_id() << ":cli_ch_handler::" << "channel_written() called" << endl;
 	}
@@ -130,11 +135,17 @@ public:
 		{
 			std::lock_guard<std::mutex> _lock(_mutex);
 			dis_conn++;
-			cout << static_cast<ssl_channel_context*>(ctx)->channel_id() << ":cli_ch_handler::" << "channel_disconnected() called:" << dis_conn << endl;
+			cout << static_cast<ssl_channel_context*>(ctx)->channel_id() << ":" << std::this_thread::get_id() << ":cli_ch_handler::" << "channel_disconnected() called:" << dis_conn << endl;
 		}
 
-		if (dis_conn == (CLIENT_COUNT - exc))
+		if (dis_conn == (CLIENT_COUNT - exc)) {
+//		if (dis_conn >= CLIENT_COUNT) {
+			cout << "SSLClient request stop [disconn]@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@" << endl;
 			scli_p->request_stop(); // stop()호출 뒤에 발생되는 이벤트는 핸들러 호출이 되지 않는다.
+		}
+//		else {
+//			scli_p->connect("127.0.0.1", 10888);
+//		}
 	}
 };
 
@@ -166,12 +177,17 @@ int main(int argc, const char * argv[]) {
 
 	cout << "SSLClient start" << endl;
 
+#ifdef RASPI_TEST
+	std::chrono::milliseconds dura(9);
+#else
 	std::chrono::milliseconds dura(1);
+#endif
 	for (int inx = 0 ; inx < CLIENT_COUNT ; inx++) {
 		cli.connect("127.0.0.1", 10888);
 		std::this_thread::sleep_for(dura);
 	}
 
+//	cout << "SSLClient connect end @!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@" << endl;
 	cli.wait_stop();
 
 	cout << "conn:" << conn << ", dis_conn:" << dis_conn << ", exc:" << exc << ", read:" << rd << endl;

@@ -23,9 +23,8 @@ enum class ip {
 	v6
 };
 
-
 const int DEFAULT_BACKLOG = asio::socket_base::max_connections;
-const uint16_t ANY = 0;
+const uint16_t ANY_PORT = 0;
 
 using streambuf_pool = util::static_pool<util::streambuf>;
 

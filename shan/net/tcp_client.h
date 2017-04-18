@@ -19,11 +19,11 @@ public:
 
 private:
 	virtual tcp_channel_context_base_ptr new_channel_context() override {
-		return std::make_shared<tcp_channel_context>(tcp_channel_ptr(new tcp_channel(asio::ip::tcp::socket(*_io_service_ptr), _buffer_base_size)), this);
+		return std::make_shared<tcp_channel_context>(tcp_channel_ptr(new tcp_channel(asio::ip::tcp::socket(_io_service), _buffer_base_size)), this);
 	}
 
 	virtual void new_channel_connected(tcp_channel_context_base_ptr ch_ctx_ptr) override {
-		fire_channel_connected(ch_ctx_ptr, std::bind(&tcp_client::read_complete, this, std::placeholders::_1, std::placeholders::_2, ch_ctx_ptr));
+		call_channel_connected(ch_ctx_ptr, ch_ctx_ptr->handler_strand().wrap(std::bind(&tcp_client::read_complete, this, std::placeholders::_1, std::placeholders::_2, ch_ctx_ptr)));
 	}
 
 	virtual void resolve_complete(const asio::error_code& error, asio::ip::tcp::resolver::iterator it, tcp_channel_context_base_ptr ch_ctx_ptr) override {
@@ -31,7 +31,9 @@ private:
 			fire_channel_exception_caught(ch_ctx_ptr, resolver_error("fail to resolve address"));
 		}
 		else {
-			static_cast<tcp_channel_context*>(ch_ctx_ptr.get())->connect(it, std::bind(&tcp_client::connect_complete, this, std::placeholders::_1, std::placeholders::_2, ch_ctx_ptr));
+			// be called in resolve_complete.
+			ch_ctx_ptr->set_task_in_progress(T_CONNECT);
+			static_cast<tcp_channel_context*>(ch_ctx_ptr.get())->connect(it, ch_ctx_ptr->handler_strand().wrap(std::bind(&tcp_client::connect_complete, this, std::placeholders::_1, std::placeholders::_2, ch_ctx_ptr)));
 		}
 	}
 };

@@ -22,11 +22,11 @@ private:
 		return (_stat == RUNNING);
 	}
 
-	virtual void prepare_channel_for_next_accept() override {
-		_new_channel = ssl_channel_ptr(new ssl_channel(*_io_service_ptr, _ssl_context, _buffer_base_size));
+	virtual void prepare_new_channel_for_next_accept() override {
+		_new_channel = std::make_shared<ssl_channel>(_io_service, _ssl_context, _buffer_base_size);
 	}
 
-	virtual asio::ip::tcp::socket& socket() override { // return the asio socket of the prepared channel.
+	virtual asio::ip::tcp::socket& socket_of_new_channel() override { // return the asio socket of the prepared channel.
 		return _new_channel->socket();
 	}
 
@@ -36,16 +36,18 @@ private:
 
 	virtual void new_channel_accepted(tcp_channel_context_base_ptr ch_ctx_ptr) override {
 		ch_ctx_ptr->handler_strand().post([this, ch_ctx_ptr](){
-			static_cast<ssl_channel_context*>(ch_ctx_ptr.get())->handshake(asio::ssl::stream_base::server, std::bind(&ssl_server::handshake_complete, this, std::placeholders::_1, ch_ctx_ptr));
+			ch_ctx_ptr->set_task_in_progress(T_HANDSHAKE);
+			static_cast<ssl_channel_context*>(ch_ctx_ptr.get())->handshake(asio::ssl::stream_base::server, ch_ctx_ptr->handler_strand().wrap(std::bind(&ssl_server::handshake_complete, this, std::placeholders::_1, ch_ctx_ptr)));
 		});
 	}
 
 private:
 	void handshake_complete(const asio::error_code& error, tcp_channel_context_base_ptr ch_ctx_ptr) {
+		ch_ctx_ptr->clear_task_in_progress(T_HANDSHAKE);
 		if (error)
 			fire_channel_exception_caught(ch_ctx_ptr, channel_error(error.message()));
 		else
-			fire_channel_connected(ch_ctx_ptr, std::bind(&ssl_server::read_complete, this, std::placeholders::_1, std::placeholders::_2, ch_ctx_ptr));
+			call_channel_connected(ch_ctx_ptr, ch_ctx_ptr->handler_strand().wrap(std::bind(&ssl_server::read_complete, this, std::placeholders::_1, std::placeholders::_2, ch_ctx_ptr)));
 	}
 
 private:

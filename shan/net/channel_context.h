@@ -21,6 +21,8 @@ class channel_context : public context_base {
 	friend class tcp_service_base;
 	friend class tcp_server_base;
 	friend class tcp_client_base;
+	friend class tcp_server;
+	friend class tcp_client;
 	friend class ssl_server;
 	friend class ssl_client;
 	friend class udp_service;
@@ -31,7 +33,7 @@ public:
 public:
 	channel_context(asio::io_service& io_service, service_base<Protocol>* svc_p);
 
-	~channel_context() {
+	virtual ~channel_context() {
 		std::cout << ">>>> channel_context destoryed" << std::endl;
 		streambuf_pool::return_object(_read_sb_ptr);
 	}
@@ -56,13 +58,17 @@ protected:
 	virtual void close_gracefully(std::function<shutdown_complete_handler> shutdown_handler) noexcept = 0;
 
 	void close_immediately() noexcept {
-		channel_p()->close_immediately();
 		stat(CLOSED);
+		channel_p()->close_immediately();
 	}
 
 	void close_without_shutdown() noexcept {
-		channel_p()->close_without_shutdown();
 		stat(CLOSED);
+		channel_p()->close_without_shutdown();
+	}
+
+	void cancel_all() {
+		channel_p()->cancel_all();
 	}
 
 	// try connect without resolving an address.
@@ -73,28 +79,32 @@ protected:
 	}
 
 	void read(std::function<read_complete_handler> read_handler) noexcept {
-		if ((stat() == BOUND) || (stat() == CONNECTED))
-			channel_p()->read(read_handler);
+		channel_p()->read(_read_sb_ptr, read_handler);
 	}
 
-	bool write_streambuf(util::streambuf_ptr write_sb_ptr, std::function<write_complete_handler> write_handler) {
-		if (stat() == CONNECTED) {
-			channel_p()->write_streambuf(write_sb_ptr, write_handler);
-			return true;
+	void write_streambuf(util::streambuf_ptr write_sb_ptr, std::function<write_complete_handler> write_handler) {
+		channel_p()->write_streambuf(write_sb_ptr, write_handler);
+	}
+
+	void remove_sent_data() {
+		channel_p()->remove_sent_data();
+	}
+
+	bool has_data_to_write() {
+		return channel_p()->has_data_to_write();
+	}
+
+	void write_next_streambuf(std::function<write_complete_handler> write_handler) {
+		channel_p()->write_next_streambuf(write_handler);
+	}
+
+	void handle_req_close(std::function<shutdown_complete_handler> shutdown_handler) {
+		if (stat() == REQ_CLOSE) {
+			if (!is_channel_busy())
+				close_gracefully(shutdown_handler);
 		}
-
-		return false;
 	}
-
-	bool write_next_streambuf(std::function<write_complete_handler> write_handler) {
-		if (stat() == CONNECTED) {
-			channel_p()->write_next_streambuf(write_handler);
-			return true;
-		}
-
-		return false;
-	}
-
+	
 	util::streambuf_ptr read_buf() {
 		return _read_sb_ptr;
 	}

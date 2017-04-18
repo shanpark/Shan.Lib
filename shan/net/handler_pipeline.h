@@ -15,8 +15,8 @@ namespace net {
 template<typename Handler>
 class handler_pipeline : public object {
 public:
-	using handler_ptr = std::unique_ptr<Handler>;
-	using ptr = std::unique_ptr<handler_pipeline<Handler>>;
+	using handler_ptr = std::shared_ptr<Handler>;
+	using ptr = std::shared_ptr<handler_pipeline<Handler>>;
 
 public:
 	void add_handler(handler_ptr h) {

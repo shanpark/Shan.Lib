@@ -30,7 +30,7 @@ public:
 	virtual void channel_read(shan::net::tcp_channel_context_base* ctx, shan::object_ptr& data) {} // <-- inbound
 	virtual void channel_rdbuf_empty(shan::net::tcp_channel_context_base* ctx) {} // <-- inbound
 	virtual void channel_write(shan::net::tcp_channel_context_base* ctx, shan::object_ptr& data) {} // outbound -->
-	virtual void channel_written(shan::net::tcp_channel_context_base* ctx, std::size_t bytes_transferred, shan::util::streambuf_ptr sb_ptr) {} // <-- inbound
+	virtual void channel_written(shan::net::tcp_channel_context_base* ctx, std::size_t bytes_transferred) {} // <-- inbound
 	virtual void channel_disconnected(shan::net::tcp_channel_context_base* ctx) {} // <-- inbound
 };
 
@@ -41,12 +41,12 @@ public:
 	virtual void channel_connected(shan::net::udp_channel_context* ctx) {} // inbound
 	virtual void channel_read_from(shan::net::udp_channel_context* ctx, shan::object_ptr& data, const shan::net::ip_port& from) {} // inbound
 	virtual void channel_write(shan::net::udp_channel_context* ctx, shan::object_ptr& data) {} // outbound
-	virtual void channel_written(shan::net::udp_channel_context* ctx, std::size_t bytes_transferred, shan::util::streambuf_ptr sb_ptr) {} // inbound
+	virtual void channel_written(shan::net::udp_channel_context* ctx, std::size_t bytes_transferred) {} // inbound
 	virtual void channel_disconnected(shan::net::udp_channel_context* ctx) {} // inbound
 };
 
 template<typename Protocol>
-using channel_handler_ptr = std::unique_ptr<channel_handler<Protocol>>;
+using channel_handler_ptr = std::shared_ptr<channel_handler<Protocol>>;
 
 using tcp_channel_handler = channel_handler<protocol::tcp>;
 using udp_channel_handler = channel_handler<protocol::udp>;

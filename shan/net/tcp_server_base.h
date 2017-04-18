@@ -19,23 +19,22 @@ public:
 	, _acceptor_pipeline_ptr(new acceptor_pipeline()) {}
 
 	virtual ~tcp_server_base() {
-//		if (_io_service_ptr)
-//			stop();
-//		_join_worker_threads(false);
+		// Note: service's destructor must not be called in worker thread(channel handler)
+		std::lock_guard<std::mutex> lock(_service_mutex);
+		if (_stat == RUNNING)
+			stop();
 	}
 
-	bool add_acceptor_handler(acceptor_handler* ac_handler_p) {
-		return add_acceptor_handler(acceptor_handler_ptr(ac_handler_p));
+	void add_acceptor_handler(acceptor_handler* ac_handler_p) {
+		add_acceptor_handler(acceptor_handler_ptr(ac_handler_p));
 	}
 
-	bool add_acceptor_handler(acceptor_handler_ptr ac_handler_ptr) {
+	void add_acceptor_handler(acceptor_handler_ptr ac_handler_ptr) {
 		std::lock_guard<std::mutex> lock(_shared_mutex);
-		if (_stat == CREATED) {
+		if (_stat == CREATED)
 			_acceptor_pipeline_ptr->add_handler(std::move(ac_handler_ptr));
-			return true;
-		}
-
-		return false; // if service started, can't add handler.
+		else
+			throw service_error("the service is already started");
 	}
 
 	void start(uint16_t port, bool reuse_addr = true, int listen_backlog = DEFAULT_BACKLOG, ip v = ip::v4) {
@@ -44,11 +43,11 @@ public:
 			if (_stat == CREATED) {
 				service_base::start();
 
-				_acceptor_context_ptr = acceptor_context_ptr(new acceptor_context(acceptor_ptr(new acceptor(*_io_service_ptr, v))));
+				_acceptor_context_ptr = std::make_shared<acceptor_context>(acceptor(_io_service, v));
 				_acceptor_context_ptr->start(port, reuse_addr, listen_backlog);
 
-				prepare_channel_for_next_accept();
-				_acceptor_context_ptr->accept(socket(), std::bind(&tcp_server_base::accept_complete, this, std::placeholders::_1, std::placeholders::_2));
+				prepare_new_channel_for_next_accept();
+				_acceptor_context_ptr->accept(socket_of_new_channel(), std::bind(&tcp_server_base::accept_complete, this, std::placeholders::_1, std::placeholders::_2)); // don't have to wrap handler
 			}
 		} catch (const std::exception& e) {
 			fire_acceptor_exception_caught(acceptor_error(e.what()));
@@ -56,13 +55,13 @@ public:
 	}
 
 protected:
-	virtual void prepare_channel_for_next_accept() = 0;
-	virtual asio::ip::tcp::socket& socket() = 0; // return the asio socket of the prepared channel.
+	virtual void prepare_new_channel_for_next_accept() = 0;
+	virtual asio::ip::tcp::socket& socket_of_new_channel() = 0; // return the asio socket of the prepared channel.
 	virtual tcp_channel_context_base_ptr new_channel_context() = 0;
 	virtual void new_channel_accepted(tcp_channel_context_base_ptr ch_ctx_ptr) = 0;
 	
 	virtual void stop() override {
-		std::lock_guard<std::mutex> lock(_service_mutex);
+//...		std::lock_guard<std::mutex> lock(_service_mutex);
 		service_base::stop(); // no more handler will be called.
 		
 		_acceptor_context_ptr->stop();
@@ -111,9 +110,9 @@ protected:
 		}
 
 		// accept next client
-		if (_acceptor_context_ptr->stat() == acceptor_context::STARTED) {
-			prepare_channel_for_next_accept();
-			_acceptor_context_ptr->accept(socket(), std::bind(&tcp_server_base::accept_complete, this, std::placeholders::_1, std::placeholders::_2));
+		if (_acceptor_context_ptr->stat() == context_stat::STARTED) {
+			prepare_new_channel_for_next_accept();
+			_acceptor_context_ptr->accept(socket_of_new_channel(), std::bind(&tcp_server_base::accept_complete, this, std::placeholders::_1, std::placeholders::_2)); // don't have to wrap handler
 		}
 	}
 

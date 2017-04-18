@@ -10,8 +10,8 @@
 		9067B0431E77CF0A00FEBD3B /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9067B0421E77CF0A00FEBD3B /* main.cpp */; };
 		9087B97F1E8B703500AFD809 /* shan_net_tcp_test.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9087B97E1E8B703500AFD809 /* shan_net_tcp_test.cpp */; };
 		9087B9811E8B757200AFD809 /* shan_net_udp_test.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9087B9801E8B757200AFD809 /* shan_net_udp_test.cpp */; };
-		90DEE77E1E93652700245316 /* libssl.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 90DEE77D1E93652700245316 /* libssl.a */; };
-		90DEE7801E93654B00245316 /* libcrypto.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 90DEE77F1E93654B00245316 /* libcrypto.a */; };
+		90EA25BD1EA26789004D902F /* libcrypto.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 90EA25B91EA266E4004D902F /* libcrypto.a */; };
+		90EA25BE1EA26789004D902F /* libssl.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 90EA25BA1EA266E4004D902F /* libssl.a */; };
 		90F365FC1E9494F8009B4078 /* shan_net_ssl_test.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 90F365FB1E9494F8009B4078 /* shan_net_ssl_test.cpp */; };
 /* End PBXBuildFile section */
 
@@ -69,6 +69,8 @@
 		90DEE7821E93A14600245316 /* ssl_client.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ssl_client.h; path = ../shan/net/ssl_client.h; sourceTree = "<group>"; };
 		90DEE7831E93D2A600245316 /* ssl_channel.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ssl_channel.h; path = ../shan/net/ssl_channel.h; sourceTree = "<group>"; };
 		90DEE7841E93DA8100245316 /* ssl_channel_context.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ssl_channel_context.h; path = ../shan/net/ssl_channel_context.h; sourceTree = "<group>"; };
+		90EA25B91EA266E4004D902F /* libcrypto.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libcrypto.a; path = ../../../openssl_1.0.2k/lib/libcrypto.a; sourceTree = "<group>"; };
+		90EA25BA1EA266E4004D902F /* libssl.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libssl.a; path = ../../../openssl_1.0.2k/lib/libssl.a; sourceTree = "<group>"; };
 		90F365FB1E9494F8009B4078 /* shan_net_ssl_test.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = shan_net_ssl_test.cpp; sourceTree = "<group>"; };
 		90F365FE1E95220B009B4078 /* tcp_server_base.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = tcp_server_base.h; path = ../shan/net/tcp_server_base.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -78,8 +80,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				90DEE7801E93654B00245316 /* libcrypto.a in Frameworks */,
-				90DEE77E1E93652700245316 /* libssl.a in Frameworks */,
+				90EA25BD1EA26789004D902F /* libcrypto.a in Frameworks */,
+				90EA25BE1EA26789004D902F /* libssl.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -177,6 +179,8 @@
 		90DEE77C1E93652700245316 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				90EA25B91EA266E4004D902F /* libcrypto.a */,
+				90EA25BA1EA266E4004D902F /* libssl.a */,
 				90DEE77F1E93654B00245316 /* libcrypto.a */,
 				90DEE77D1E93652700245316 /* libssl.a */,
 			);
@@ -280,7 +284,10 @@
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_OPTIMIZATION_LEVEL = 0;
-				GCC_PREPROCESSOR_DEFINITIONS = "DEBUG=1";
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					MACOS_TEST,
+				);
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
 				GCC_WARN_UNDECLARED_SELECTOR = YES;
@@ -329,7 +336,7 @@
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
 				GCC_NO_COMMON_BLOCKS = YES;
-				GCC_PREPROCESSOR_DEFINITIONS = "";
+				GCC_PREPROCESSOR_DEFINITIONS = MACOS_TEST;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
 				GCC_WARN_UNDECLARED_SELECTOR = YES;

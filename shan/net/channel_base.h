@@ -15,9 +15,9 @@ namespace net {
 using connect_complete_handler = void (const asio::error_code& error);
 using tcp_connect_complete_handler = void (const asio::error_code& error, asio::ip::tcp::resolver::iterator it);
 using udp_connect_complete_handler = void (const asio::error_code& error, asio::ip::udp::resolver::iterator it);
-using read_complete_handler = void (const asio::error_code& error, util::streambuf_ptr sb_ptr);
-using write_complete_handler = void (const asio::error_code& error, std::size_t bytes_transferred, util::streambuf_ptr sb_ptr);
-using shutdown_complete_handler = void (bool close_channel);
+using read_complete_handler = void (const asio::error_code& error, std::size_t bytes_transferred);
+using write_complete_handler = void (const asio::error_code& error, std::size_t bytes_transferred);
+using shutdown_complete_handler = void (const asio::error_code& error);
 
 template<typename Protocol>
 class channel_context;
@@ -33,11 +33,14 @@ protected:
 	virtual void close_gracefully(std::function<shutdown_complete_handler> shudown_handler) noexcept = 0;
 	virtual void close_immediately() noexcept = 0;
 	virtual void close_without_shutdown() noexcept = 0;
+	virtual void cancel_all() noexcept = 0;
 
 	virtual void connect(const ip_port& destination, std::function<connect_complete_handler> connect_handler) = 0;
 
-	virtual void read(std::function<read_complete_handler> read_handler) noexcept = 0;
+	virtual void read(util::streambuf_ptr read_sb_ptr, std::function<read_complete_handler> read_handler) noexcept = 0;
 	virtual void write_streambuf(util::streambuf_ptr write_sb_ptr, std::function<write_complete_handler> write_handler) = 0;
+	virtual void remove_sent_data() = 0;
+	virtual bool has_data_to_write() = 0;
 	virtual void write_next_streambuf(std::function<write_complete_handler> write_handler) = 0;
 
 	virtual asio::io_service& io_service() = 0;

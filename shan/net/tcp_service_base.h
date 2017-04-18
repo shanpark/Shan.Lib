@@ -18,35 +18,36 @@ public:
 	: service_base<protocol::tcp>(worker_count, buffer_base_size) {}
 
 protected:
-	void fire_channel_connected(tcp_channel_context_base_ptr ch_ctx_ptr, std::function<read_complete_handler> read_handler) {
-		ch_ctx_ptr->handler_strand().post([this, ch_ctx_ptr, read_handler]() {
-			if (!ch_ctx_ptr->settable_stat(channel_context<protocol::tcp>::CONNECTED))
-				return;
-			ch_ctx_ptr->stat(channel_context<protocol::tcp>::CONNECTED);
-			ch_ctx_ptr->connected(true);
+	void call_channel_connected(tcp_channel_context_base_ptr ch_ctx_ptr, std::function<read_complete_handler> read_handler) {
+		if (!ch_ctx_ptr->settable_stat(context_stat::CONNECTED))
+			return;
 
-			ch_ctx_ptr->read(read_handler); // must call read() before channel_connected() handers are called.
+		ch_ctx_ptr->stat(context_stat::CONNECTED);
+		ch_ctx_ptr->connected(true);
 
-			ch_ctx_ptr->done(false); // reset context to 'not done'.
-			// <-- inbound
-			auto begin = channel_handlers().begin();
-			auto end = channel_handlers().end();
-			try {
-				for (auto it = begin ; !(ch_ctx_ptr->done()) && (it != end) ; it++)
-					(*it)->channel_connected(static_cast<tcp_channel_context_base*>(ch_ctx_ptr.get()));
-			} catch (const std::exception& e) {
-				fire_channel_exception_caught(ch_ctx_ptr, channel_error(std::string("An exception has thrown in channel_connected handler. (") + e.what() + ")"));
-			}
-		});
+		ch_ctx_ptr->done(false); // reset context to 'not done'.
+		// <-- inbound
+		auto begin = channel_handlers().begin();
+		auto end = channel_handlers().end();
+		try {
+			for (auto it = begin ; !(ch_ctx_ptr->done()) && (it != end) ; it++)
+				(*it)->channel_connected(static_cast<tcp_channel_context_base*>(ch_ctx_ptr.get()));
+		} catch (const std::exception& e) {
+			fire_channel_exception_caught(ch_ctx_ptr, channel_error(std::string("An exception has thrown in channel_connected handler. (") + e.what() + ")"));
+		}
+
+		if (ch_ctx_ptr->stat() == CONNECTED) {
+			ch_ctx_ptr->set_task_in_progress(T_READ);
+			ch_ctx_ptr->read(read_handler);
+		}
+
+		ch_ctx_ptr->handle_req_close(ch_ctx_ptr->handler_strand().wrap(std::bind(&tcp_service_base::shutdown_complete, this, std::placeholders::_1, ch_ctx_ptr)));
 	}
 
-	virtual void fire_channel_read(tcp_channel_context_base_ptr ch_ctx_ptr, util::streambuf_ptr& sb_ptr, std::function<read_complete_handler> read_handler) override {
-		ch_ctx_ptr->handler_strand().post([this, ch_ctx_ptr, sb_ptr, read_handler]() { //
-			// copy to context's buffer
-			ch_ctx_ptr->read_buf()->append(*sb_ptr);
-			streambuf_pool::return_object(sb_ptr); // return for reuse.
-
-			ch_ctx_ptr->read(read_handler); // must call read() before channel_read() handers are called.
+	virtual void call_channel_read(tcp_channel_context_base_ptr ch_ctx_ptr, std::size_t bytes_transferred, std::function<read_complete_handler> read_handler) override {
+//...	ch_ctx_ptr->handler_strand().post([this, ch_ctx_ptr, bytes_transferred, read_handler]() { //
+			util::streambuf_ptr sb_ptr = ch_ctx_ptr->read_buf();
+			sb_ptr->commit(bytes_transferred);
 
 			// channel_read() handler
 			ch_ctx_ptr->done(false); // reset context to 'not done'.
@@ -70,7 +71,7 @@ protected:
 
 			// channel_rdbuf_empty() handler
 			if (ch_ctx_ptr->read_buf()->in_size() == 0) {
-				if (ch_ctx_ptr->stat() == channel_context<protocol::tcp>::CONNECTED) { // if channel_disconnected() is already called, don't call channel_rdbuf_empty().
+				if (ch_ctx_ptr->stat() == context_stat::CONNECTED) { // if channel_disconnected() is already called, don't call channel_rdbuf_empty().
 					ch_ctx_ptr->done(false); // reset context to 'not done'.
 					// <-- inbound
 					auto begin = channel_handlers().begin();
@@ -83,7 +84,12 @@ protected:
 					}
 				}
 			}
-		});
+
+			if (ch_ctx_ptr->stat() == CONNECTED) {
+				ch_ctx_ptr->set_task_in_progress(T_READ);
+				ch_ctx_ptr->read(read_handler);
+			}
+//		});
 	}
 
 	virtual void fire_channel_write(tcp_channel_context_base_ptr ch_ctx_ptr, object_ptr data) override {
@@ -103,8 +109,11 @@ protected:
 
 			util::streambuf_ptr sb_ptr = std::dynamic_pointer_cast<util::streambuf>(write_obj);
 			if (sb_ptr) {
-				bool success = ch_ctx_ptr->write_streambuf(sb_ptr, std::bind(&tcp_service_base::write_complete, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, ch_ctx_ptr));
-				if (!success) {
+				if (ch_ctx_ptr->stat() == context_stat::CONNECTED) {
+					ch_ctx_ptr->set_task_in_progress(T_WRITE);
+					ch_ctx_ptr->write_streambuf(sb_ptr, ch_ctx_ptr->handler_strand().wrap(std::bind(&tcp_service_base::write_complete, this, std::placeholders::_1, std::placeholders::_2, ch_ctx_ptr)));
+				}
+				else {
 					fire_channel_exception_caught(ch_ctx_ptr, channel_error("The status of the channel is not suitable for sending data."));
 				}
 			}
@@ -114,64 +123,71 @@ protected:
 		});
 	}
 
-	virtual void fire_channel_written(tcp_channel_context_base_ptr ch_ctx_ptr, std::size_t bytes_transferred, util::streambuf_ptr sb_ptr) override {
-		ch_ctx_ptr->handler_strand().post([this, ch_ctx_ptr, bytes_transferred, sb_ptr](){
+	virtual void call_channel_written(tcp_channel_context_base_ptr ch_ctx_ptr, std::size_t bytes_transferred) override {
+		ch_ctx_ptr->done(false); // reset context to 'not done'.
+		// <-- inbound
+		auto begin = channel_handlers().begin();
+		auto end = channel_handlers().end();
+		try {
+			for (auto it = begin ; !(ch_ctx_ptr->done()) && (it != end) ; it++)
+				(*it)->channel_written(static_cast<tcp_channel_context_base*>(ch_ctx_ptr.get()), bytes_transferred);
+		} catch (const std::exception& e) {
+			fire_channel_exception_caught(ch_ctx_ptr, channel_error(std::string("An exception has thrown in channel_written handler. (") + e.what() + ")"));
+		}
+
+		if (ch_ctx_ptr->stat() == context_stat::CONNECTED) {
+			if (ch_ctx_ptr->has_data_to_write()) {
+				ch_ctx_ptr->set_task_in_progress(T_WRITE);
+				ch_ctx_ptr->write_next_streambuf(ch_ctx_ptr->handler_strand().wrap(std::bind(&tcp_service_base::write_complete, this, std::placeholders::_1, std::placeholders::_2, ch_ctx_ptr)));
+			}
+		}
+	}
+
+	virtual void call_channel_disconnected(tcp_channel_context_base_ptr ch_ctx_ptr) override {
+		// call channel_disconnected() handler, if needed
+		if (ch_ctx_ptr->connected()) {
+			ch_ctx_ptr->connected(false);
+
+			if (ch_ctx_ptr->settable_stat(context_stat::DISCONNECTED))
+				ch_ctx_ptr->stat(context_stat::DISCONNECTED);
+
 			ch_ctx_ptr->done(false); // reset context to 'not done'.
 			// <-- inbound
 			auto begin = channel_handlers().begin();
 			auto end = channel_handlers().end();
 			try {
 				for (auto it = begin ; !(ch_ctx_ptr->done()) && (it != end) ; it++)
-					(*it)->channel_written(static_cast<tcp_channel_context_base*>(ch_ctx_ptr.get()), bytes_transferred, sb_ptr);
+					(*it)->channel_disconnected(static_cast<tcp_channel_context_base*>(ch_ctx_ptr.get()));
 			} catch (const std::exception& e) {
-				fire_channel_exception_caught(ch_ctx_ptr, channel_error(std::string("An exception has thrown in channel_written handler. (") + e.what() + ")"));
+				fire_channel_exception_caught(ch_ctx_ptr, channel_error(std::string("An exception has thrown in channel_disconnected handler. (") + e.what() + ")"));
 			}
+		}
 
-			ch_ctx_ptr->write_next_streambuf(std::bind(&tcp_service_base::write_complete, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, ch_ctx_ptr));
-		});
-	}
+		// close channel, if needed
+		std::size_t ch_id = ch_ctx_ptr->channel_id();
+		if (ch_ctx_ptr->settable_stat(context_stat::CLOSED))
+			ch_ctx_ptr->close_immediately();
 
-	virtual void fire_channel_disconnected(tcp_channel_context_base_ptr ch_ctx_ptr) override {
-		ch_ctx_ptr->handler_strand().post([this, ch_ctx_ptr](){
-			// call channel_disconnected() handler, if needed
-			if (ch_ctx_ptr->connected()) {
-				ch_ctx_ptr->connected(false);
-
-				if (ch_ctx_ptr->settable_stat(channel_context<protocol::tcp>::DISCONNECTED))
-					ch_ctx_ptr->stat(channel_context<protocol::tcp>::DISCONNECTED);
-
-				ch_ctx_ptr->done(false); // reset context to 'not done'.
-				// <-- inbound
-				auto begin = channel_handlers().begin();
-				auto end = channel_handlers().end();
-				try {
-					for (auto it = begin ; !(ch_ctx_ptr->done()) && (it != end) ; it++)
-						(*it)->channel_disconnected(static_cast<tcp_channel_context_base*>(ch_ctx_ptr.get()));
-				} catch (const std::exception& e) {
-					fire_channel_exception_caught(ch_ctx_ptr, channel_error(std::string("An exception has thrown in channel_disconnected handler. (") + e.what() + ")"));
-				}
-			}
-
-			// close channel, if needed
-			std::size_t ch_id = ch_ctx_ptr->channel_id();
-			if (ch_ctx_ptr->settable_stat(channel_context<protocol::tcp>::CLOSED))
-				ch_ctx_ptr->close_immediately();
-
-			// erase context
-			{
-				std::lock_guard<std::mutex> lock(_shared_mutex);
-				_channel_contexts.erase(ch_id);
-			}
-		});
+		// erase context
+		{
+			std::lock_guard<std::mutex> lock(_shared_mutex);
+			_channel_contexts.erase(ch_id);
+		}
 	}
 
 	virtual void fire_channel_close(tcp_channel_context_base_ptr ch_ctx_ptr) override {
-		ch_ctx_ptr->handler_strand().post([this, ch_ctx_ptr](){
-			if ((ch_ctx_ptr->stat() >= channel_context<protocol::udp>::OPEN) &&
-				(ch_ctx_ptr->stat() < channel_context<protocol::udp>::CLOSED)) {
-				ch_ctx_ptr->close_gracefully(std::bind(&tcp_service_base::shutdown_complete, this, std::placeholders::_1, ch_ctx_ptr));
-			}
-		});
+		if ((ch_ctx_ptr->stat() >= context_stat::OPEN) && (ch_ctx_ptr->stat() < context_stat::REQ_CLOSE)) {
+			ch_ctx_ptr->stat(context_stat::REQ_CLOSE); // must change stat to REQ_CLOSE instantly to prevent different operations from being fired.
+
+			ch_ctx_ptr->handler_strand().post([this, ch_ctx_ptr](){
+				if (ch_ctx_ptr->stat() == context_stat::REQ_CLOSE) {
+					if (ch_ctx_ptr->is_channel_busy())
+						ch_ctx_ptr->cancel_all(); // some complete handlers(read_complete, write_complete, ...) will be called.
+					else
+						ch_ctx_ptr->close_gracefully(ch_ctx_ptr->handler_strand().wrap(std::bind(&tcp_service_base::shutdown_complete, this, std::placeholders::_1, ch_ctx_ptr)));
+				}
+			});
+		}
 	}
 };
 

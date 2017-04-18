@@ -25,13 +25,8 @@ private:
 		_channel_ptr->bind(port, v);
 	}
 
-	bool write_streambuf_to(util::streambuf_ptr write_sb_ptr, const ip_port& destination, std::function<write_complete_handler> write_handler) {
-		if ((stat() >= OPEN) && (stat() < DISCONNECTED)) {
-			_channel_ptr->write_streambuf_to(write_sb_ptr, destination, write_handler);
-			return true;
-		}
-
-		return false;
+	void write_streambuf_to(util::streambuf_ptr write_sb_ptr, const ip_port& destination, std::function<write_complete_handler> write_handler) {
+		_channel_ptr->write_streambuf_to(write_sb_ptr, destination, write_handler);
 	}
 
 	asio::ip::udp::endpoint& sender() {
@@ -43,14 +38,14 @@ private:
 	}
 
 	virtual void close_gracefully(std::function<shutdown_complete_handler> shutdown_handler) noexcept override {
+		stat(CLOSED);
 		_channel_ptr->close_gracefully(shutdown_handler);
-		shutdown_handler(false);
+		shutdown_handler(asio::error_code());
 	}
 
 	void connect(asio::ip::udp::resolver::iterator it, std::function<udp_connect_complete_handler> connect_handler) {
-		handler_strand().post([this, it, connect_handler](){
-			_channel_ptr->connect(it, connect_handler);
-		});
+		// be called in resolve_complete.
+		_channel_ptr->connect(it, connect_handler);
 	}
 
 private:
