@@ -86,8 +86,8 @@ public:
 			}
 			fire_channel_close(ch_ctx_ptr);
 		} catch (const std::exception&) {
-			// if no such channel exists, nothing happens.
-			std::cout << "close_channel() exception !@!@!@!@!@!@!@!@!@!!@!@!@!@!@!@@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!" << std::endl; //... 삭제 예정.
+			// if no such channel exists.
+			// the channel will be closed. nothing happens.
 		}
 	}
 
@@ -143,11 +143,6 @@ protected:
 		// 대신 busy 상태라고 하더라도 cancel_all()을 호출해주진 않는다. 그건 람다에서 처리될 것이다.
 		// 이 로직은 clear_task가 호출되는 handler의 끝에서 검사가 매번 되어야 한다. 그래야 busy 상태가 해제되는 즉시 close_gracefully()가 호출될 수 있다.
 		ch_ctx_ptr->handle_req_close(ch_ctx_ptr->handler_strand().wrap(std::bind(&service_base::shutdown_complete, this, std::placeholders::_1, ch_ctx_ptr)));
-		
-//		if (ch_ctx_ptr->stat() == REQ_CLOSE) {
-//			if (!ch_ctx_ptr->is_channel_busy())
-//				ch_ctx_ptr->close_gracefully(ch_ctx_ptr->handler_strand().wrap(std::bind(&service_base::shutdown_complete, this, std::placeholders::_1, ch_ctx_ptr)));
-//		}
 	}
 
 	void write_complete(const asio::error_code& error, std::size_t bytes_transferred, channel_context_ptr<Protocol> ch_ctx_ptr) {

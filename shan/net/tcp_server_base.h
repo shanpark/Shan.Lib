@@ -61,7 +61,6 @@ protected:
 	virtual void new_channel_accepted(tcp_channel_context_base_ptr ch_ctx_ptr) = 0;
 	
 	virtual void stop() override {
-//...		std::lock_guard<std::mutex> lock(_service_mutex);
 		service_base::stop(); // no more handler will be called.
 		
 		_acceptor_context_ptr->stop();

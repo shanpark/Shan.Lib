@@ -62,7 +62,6 @@ protected:
 	virtual void resolve_complete(const asio::error_code& error, asio::ip::tcp::resolver::iterator it, tcp_channel_context_base_ptr ch_ctx_ptr) = 0;
 	
 	virtual void stop() override {
-//...		std::lock_guard<std::mutex> lock(_service_mutex);
 		service_base::stop(); // no more handler will be called.
 		
 		_service_cv.notify_all();
