@@ -95,6 +95,11 @@ public:
 		cout << "serv_ch_handler::" << "exception_caught() - " << e.what() << endl;
 	}
 
+	virtual void channel_created(shan::net::tcp_channel_context_base* ctx, channel_base<protocol::tcp>* channel) override {
+		std::lock_guard<std::mutex> _lock(_mutex);
+		cout << "serv_ch_handler::" << "channel_created(" << ctx->channel_id() << ") called" << endl;
+	}
+
 	virtual void channel_connected(tcp_channel_context_base* ctx) override {
 		{
 			std::lock_guard<std::mutex> _lock(_mutex);
@@ -157,6 +162,11 @@ public:
 	virtual void exception_caught(context_base* ctx, const std::exception& e) override {
 		std::lock_guard<std::mutex> _lock(_mutex);
 		cout << "cli_ch_handler::" << "exception_caught() - " << e.what() << endl;
+	}
+
+	virtual void channel_created(shan::net::tcp_channel_context_base* ctx, channel_base<protocol::tcp>* channel) override {
+		std::lock_guard<std::mutex> _lock(_mutex);
+		cout << "cli_ch_handler::" << "channel_created(" << ctx->channel_id() << ") called" << endl;
 	}
 
 	virtual void channel_connected(tcp_channel_context_base* ctx) override {

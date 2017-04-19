@@ -49,9 +49,7 @@ public:
 
 	void bind_connect(uint16_t local_port, const std::string& remote_address = std::string(""), uint16_t remote_port = 0, ip v = ip::v4) {
 		if (_stat == RUNNING) {
-			udp_channel_context_ptr ch_ctx_ptr = std::make_shared<udp_channel_context>(udp_channel_ptr(new udp_channel(asio::ip::udp::socket(_io_service), _buffer_base_size)), this);
-
-			ch_ctx_ptr->open(v); // opened channel can only have an id.
+			udp_channel_context_ptr ch_ctx_ptr = std::make_shared<udp_channel_context>(std::make_shared<udp_channel>(asio::ip::udp::socket(_io_service), _buffer_base_size), this);
 
 			auto pair = std::make_pair(ch_ctx_ptr->channel_id(), ch_ctx_ptr);
 			std::pair<decltype(_channel_contexts)::iterator, bool> ret;
@@ -75,16 +73,21 @@ public:
 				ch_ctx_ptr->close_immediately();
 			}
 			else { // successfully inserted.
-				ch_ctx_ptr->bind(local_port);
-				if ((remote_address.length() == 0) || (remote_port == 0)) {
-					fire_channel_bound(ch_ctx_ptr, true, ch_ctx_ptr->handler_strand().wrap(std::bind(&udp_service::read_complete, this, std::placeholders::_1, std::placeholders::_2, ch_ctx_ptr)));
-				}
-				else {
-					fire_channel_bound(ch_ctx_ptr, false, ch_ctx_ptr->handler_strand().wrap(std::bind(&udp_service::read_complete, this, std::placeholders::_1, std::placeholders::_2, ch_ctx_ptr)));
+				ch_ctx_ptr->handler_strand().post([this, local_port, remote_address, remote_port, v, ch_ctx_ptr](){
+					call_channel_created(ch_ctx_ptr);
 
-					asio::ip::udp::resolver::query query(remote_address, std::to_string(remote_port));
-					_resolver.async_resolve(query, ch_ctx_ptr->handler_strand().wrap(std::bind(&udp_service::resolve_complete, this, std::placeholders::_1, std::placeholders::_2, ch_ctx_ptr)));
-				}
+					ch_ctx_ptr->open(v);
+					ch_ctx_ptr->bind(local_port);
+					if ((remote_address.length() == 0) || (remote_port == 0)) {
+						fire_channel_bound(ch_ctx_ptr, true, ch_ctx_ptr->handler_strand().wrap(std::bind(&udp_service::read_complete, this, std::placeholders::_1, std::placeholders::_2, ch_ctx_ptr)));
+					}
+					else {
+						fire_channel_bound(ch_ctx_ptr, false, ch_ctx_ptr->handler_strand().wrap(std::bind(&udp_service::read_complete, this, std::placeholders::_1, std::placeholders::_2, ch_ctx_ptr)));
+
+						asio::ip::udp::resolver::query query(remote_address, std::to_string(remote_port));
+						_resolver.async_resolve(query, ch_ctx_ptr->handler_strand().wrap(std::bind(&udp_service::resolve_complete, this, std::placeholders::_1, std::placeholders::_2, ch_ctx_ptr)));
+					}
+				});
 			}
 		}
 		else {
@@ -94,9 +97,8 @@ public:
 
 	void bind_connect(uint16_t local_port, ip_port destination, ip v = ip::v4) {
 		if (_stat == RUNNING) {
-			udp_channel_context_ptr ch_ctx_ptr = std::make_shared<udp_channel_context>(udp_channel_ptr(new udp_channel(asio::ip::udp::socket(_io_service), _buffer_base_size)), this);
+			udp_channel_context_ptr ch_ctx_ptr = std::make_shared<udp_channel_context>(std::make_shared<udp_channel>(asio::ip::udp::socket(_io_service), _buffer_base_size), this);
 
-			ch_ctx_ptr->open(v); // opened channel can only have an id.
 
 			auto pair = std::make_pair(ch_ctx_ptr->channel_id(), ch_ctx_ptr);
 			std::pair<decltype(_channel_contexts)::iterator, bool> ret;
@@ -120,17 +122,22 @@ public:
 				ch_ctx_ptr->close_immediately();
 			}
 			else { // successfully inserted.
-				ch_ctx_ptr->bind(local_port);
-				if (!destination.is_valid()) {
-					fire_channel_bound(ch_ctx_ptr, true, ch_ctx_ptr->handler_strand().wrap(std::bind(&udp_service::read_complete, this, std::placeholders::_1, std::placeholders::_2, ch_ctx_ptr)));
-				}
-				else { // destination is already resolved. don't need to resolve address.
-					fire_channel_bound(ch_ctx_ptr, false, ch_ctx_ptr->handler_strand().wrap(std::bind(&udp_service::read_complete, this, std::placeholders::_1, std::placeholders::_2, ch_ctx_ptr)));
+				ch_ctx_ptr->handler_strand().post([this, local_port, destination, v, ch_ctx_ptr](){
+					call_channel_created(ch_ctx_ptr);
 
-					asio::ip::udp::resolver::iterator end;
-					// call base's connect method.
-					static_cast<udp_channel_context_base*>(ch_ctx_ptr.get())->connect(destination, ch_ctx_ptr->handler_strand().wrap(std::bind(&udp_service::connect_complete, this, std::placeholders::_1, end, ch_ctx_ptr)));
-				}
+					ch_ctx_ptr->open(v);
+					ch_ctx_ptr->bind(local_port);
+					if (!destination.is_valid()) {
+						fire_channel_bound(ch_ctx_ptr, true, ch_ctx_ptr->handler_strand().wrap(std::bind(&udp_service::read_complete, this, std::placeholders::_1, std::placeholders::_2, ch_ctx_ptr)));
+					}
+					else { // destination is already resolved. don't need to resolve address.
+						fire_channel_bound(ch_ctx_ptr, false, ch_ctx_ptr->handler_strand().wrap(std::bind(&udp_service::read_complete, this, std::placeholders::_1, std::placeholders::_2, ch_ctx_ptr)));
+
+						asio::ip::udp::resolver::iterator end;
+						// call base's connect method.
+						static_cast<udp_channel_context_base*>(ch_ctx_ptr.get())->connect(destination, ch_ctx_ptr->handler_strand().wrap(std::bind(&udp_service::connect_complete, this, std::placeholders::_1, end, ch_ctx_ptr)));
+					}
+				});
 			}
 		}
 		else {

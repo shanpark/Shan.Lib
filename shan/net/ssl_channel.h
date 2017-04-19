@@ -26,11 +26,11 @@ public:
 		close_without_shutdown();
 	}
 
+private:
 	virtual std::size_t id() const override {
 		return reinterpret_cast<std::size_t>(const_cast<ssl_channel*>(this));
 	}
 
-private:
 	virtual void open(ip v) override {
 		socket().open((v == ip::v6) ? asio::ip::tcp::v6() : asio::ip::tcp::v4());
 	}
@@ -98,7 +98,7 @@ private:
 		return ssl_stream().get_io_service();
 	}
 
-	asio::ip::tcp::socket& socket() {
+	virtual asio::ip::tcp::socket& socket() override {
 		return static_cast<asio::ip::tcp::socket&>(_ssl_stream.lowest_layer());
 	}
 

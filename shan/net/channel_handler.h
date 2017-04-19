@@ -13,6 +13,9 @@ namespace shan {
 namespace net {
 
 template<typename Protocol>
+class channel_base;
+
+template<typename Protocol>
 class channel_context;
 
 using tcp_channel_context_base = channel_context<protocol::tcp>;
@@ -26,6 +29,7 @@ class channel_handler; // no body implementation.
 template<>
 class channel_handler<protocol::tcp> : public handler {
 public:
+	virtual void channel_created(shan::net::tcp_channel_context_base* ctx, channel_base<protocol::tcp>* channel) {} // <-- inbound
 	virtual void channel_connected(shan::net::tcp_channel_context_base* ctx) {} // <-- inbound
 	virtual void channel_read(shan::net::tcp_channel_context_base* ctx, shan::object_ptr& data) {} // <-- inbound
 	virtual void channel_rdbuf_empty(shan::net::tcp_channel_context_base* ctx) {} // <-- inbound
@@ -37,6 +41,7 @@ public:
 template<>
 class channel_handler<protocol::udp> : public handler {
 public:
+	virtual void channel_created(shan::net::udp_channel_context_base* ctx, channel_base<protocol::udp>* channel) {} // <-- inbound
 	virtual void channel_bound(shan::net::udp_channel_context* ctx) {} // inbound
 	virtual void channel_connected(shan::net::udp_channel_context* ctx) {} // inbound
 	virtual void channel_read_from(shan::net::udp_channel_context* ctx, shan::object_ptr& data, const shan::net::ip_port& from) {} // inbound

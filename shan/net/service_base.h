@@ -168,6 +168,19 @@ protected:
 			call_channel_disconnected(ch_ctx_ptr);
 	}
 
+	virtual void call_channel_created(channel_context_ptr<Protocol> ch_ctx_ptr) {
+		ch_ctx_ptr->done(false); // reset context to 'not done'.
+		// <-- inbound
+		auto begin = channel_handlers().begin();
+		auto end = channel_handlers().end();
+		try {
+			for (auto it = begin ; !(ch_ctx_ptr->done()) && (it != end) ; it++)
+				(*it)->channel_created(ch_ctx_ptr.get(), ch_ctx_ptr->channel_p());
+		} catch (const std::exception& e) {
+			fire_channel_exception_caught(ch_ctx_ptr, channel_error(std::string("An exception has thrown in channel_created handler. (") + e.what() + ")"));
+		}
+	}
+
 	virtual void call_channel_read(channel_context_ptr<Protocol> ch_ctx_ptr, std::size_t bytes_transferred, std::function<read_complete_handler> read_handler) = 0;
 	virtual void fire_channel_write(channel_context_ptr<Protocol> ch_ctx_ptr, object_ptr data) = 0;
 	virtual void call_channel_written(channel_context_ptr<Protocol> ch_ctx_ptr, std::size_t bytes_transferred) = 0;

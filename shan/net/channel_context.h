@@ -72,7 +72,7 @@ protected:
 	}
 
 	// try connect without resolving an address.
-	void connect(ip_port& destination, std::function<connect_complete_handler> connect_handler) {
+	void connect(const ip_port& destination, std::function<connect_complete_handler> connect_handler) {
 		handler_strand().post([this, destination, connect_handler](){
 			channel_p()->connect(destination, connect_handler);
 		});

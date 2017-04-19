@@ -36,7 +36,10 @@ public:
 			asio::ip::tcp::resolver::query query(address, std::to_string(port));
 
 			auto ch_ctx_ptr = new_channel_context();
-			_resolver.async_resolve(query, ch_ctx_ptr->handler_strand().wrap(std::bind(&tcp_client_base::resolve_complete, this, std::placeholders::_1, std::placeholders::_2, ch_ctx_ptr)));
+			ch_ctx_ptr->handler_strand().post([this, query, ch_ctx_ptr](){
+				call_channel_created(ch_ctx_ptr);
+				_resolver.async_resolve(query, ch_ctx_ptr->handler_strand().wrap(std::bind(&tcp_client_base::resolve_complete, this, std::placeholders::_1, std::placeholders::_2, ch_ctx_ptr)));
+			});
 		}
 		else {
 			throw service_error("the service is not running.");
@@ -45,11 +48,14 @@ public:
 
 	void connect(ip_port destination) {
 		if (_stat == RUNNING) {
-			asio::ip::tcp::resolver::iterator end;
 			auto ch_ctx_ptr = new_channel_context();
+			ch_ctx_ptr->handler_strand().post([this, destination, ch_ctx_ptr](){
+				call_channel_created(ch_ctx_ptr);
 
-			ch_ctx_ptr->set_task_in_progress(T_CONNECT);
-			ch_ctx_ptr->connect(destination, ch_ctx_ptr->handler_strand().wrap(std::bind((&tcp_client_base::connect_complete), this, std::placeholders::_1, end, ch_ctx_ptr)));
+				asio::ip::tcp::resolver::iterator end;
+				ch_ctx_ptr->set_task_in_progress(T_CONNECT);
+				ch_ctx_ptr->connect(destination, ch_ctx_ptr->handler_strand().wrap(std::bind((&tcp_client_base::connect_complete), this, std::placeholders::_1, end, ch_ctx_ptr)));
+			});
 		}
 		else {
 			throw service_error("the service is not running.");

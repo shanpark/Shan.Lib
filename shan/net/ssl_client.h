@@ -23,7 +23,7 @@ private:
 	}
 
 	virtual tcp_channel_context_base_ptr new_channel_context() override {
-		return std::make_shared<ssl_channel_context>(ssl_channel_ptr(new ssl_channel(_io_service, _ssl_context, _buffer_base_size)), this);
+		return std::make_shared<ssl_channel_context>(std::make_shared<ssl_channel>(_io_service, _ssl_context, _buffer_base_size), this);
 	}
 
 	virtual void new_channel_connected(tcp_channel_context_base_ptr ch_ctx_ptr) override {

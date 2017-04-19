@@ -26,11 +26,11 @@ public:
 		close_without_shutdown();
 	}
 
+private:
 	virtual std::size_t id() const override {
 		return reinterpret_cast<std::size_t>(const_cast<udp_channel*>(this));
 	}
 
-private:
 	virtual void open(ip v) override {
 		socket().open((v == ip::v6) ? asio::ip::udp::v6() : asio::ip::udp::v4());
 	}
@@ -111,7 +111,7 @@ private:
 		return socket().get_io_service();
 	}
 
-	asio::ip::udp::socket& socket() {
+	virtual asio::ip::udp::socket& socket() override {
 		return _socket;
 	}
 	

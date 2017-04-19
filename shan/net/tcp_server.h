@@ -32,6 +32,8 @@ private:
 
 	virtual void new_channel_accepted(tcp_channel_context_base_ptr ch_ctx_ptr) override {
 		ch_ctx_ptr->handler_strand().post([this, ch_ctx_ptr](){
+			call_channel_created(ch_ctx_ptr);
+			
 			call_channel_connected(ch_ctx_ptr, ch_ctx_ptr->handler_strand().wrap(std::bind(&tcp_server::read_complete, this, std::placeholders::_1, std::placeholders::_2, ch_ctx_ptr)));
 		});
 	}
