@@ -37,14 +37,18 @@ std::string jt = json.str(); // generating JSON text from object.
 
 // *** Please refer to the test sources...
 
-// channel event handler class
+// channel event handler classes
+class channel_coder : public tcp_channel_handler {
+  ...
+}
+
 class serv_ch_handler : public tcp_channel_handler {
 public:
   virtual void channel_connected(tcp_channel_context_base* ctx) override { // a client connected
     cout << "serv_ch_handler::channel_connected(" << ctx->channel_id() << ") called" << endl;
 
-    auto data = std::make_shared<unix_time>(3000);
-    ctx->write(data);
+    auto data = std::make_shared<unix_time>(std::time(nullptr)); // unix_time is a user class.
+    ctx->write(data); // channel_coder serializes the data to streambuf.
   }
 
   virtual void channel_read(tcp_channel_context_base* ctx, shan::object_ptr& data) override { // some data has read from client.
@@ -67,9 +71,10 @@ public:
 
 // in main()
 shan::net::tcp_server serv;
+
 serv.add_channel_handler(new channel_coder());   // when serv is released
 serv.add_channel_handler(new serv_ch_handler()); // handlers will be released too.
-serv.start(10999); // worker thread start
+serv.start(10999); // worker threads start
 
-serv.wait_stop(); // wait
+serv.wait_stop();
 </code></pre>
