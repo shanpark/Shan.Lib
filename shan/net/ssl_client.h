@@ -29,26 +29,26 @@ private:
 	virtual void new_channel_connected(tcp_channel_context_base_ptr ch_ctx_ptr) override {
 		ch_ctx_ptr->set_task_in_progress(T_HANDSHAKE);
 		static_cast<ssl_channel_context*>(ch_ctx_ptr.get())->handshake(asio::ssl::stream_base::client,
-																	   ch_ctx_ptr->handler_strand().wrap(std::bind(&ssl_client::handshake_complete, this, std::placeholders::_1, ch_ctx_ptr)));
+																	   ch_ctx_ptr->strand().wrap(std::bind(&ssl_client::handshake_complete, this, std::placeholders::_1, ch_ctx_ptr)));
 	}
 
 	virtual void resolve_complete(const asio::error_code& error, asio::ip::tcp::resolver::iterator it, tcp_channel_context_base_ptr ch_ctx_ptr) override {
 		if (error) {
-			fire_channel_exception_caught(ch_ctx_ptr, resolver_error("fail to resolve address"));
+			ch_ctx_ptr->fire_exception_caught(resolver_error("fail to resolve address"));
 		}
 		else {
 			// be called in resolve_complete.
 			ch_ctx_ptr->set_task_in_progress(T_CONNECT);
-			static_cast<ssl_channel_context*>(ch_ctx_ptr.get())->connect(it, ch_ctx_ptr->handler_strand().wrap(std::bind(&ssl_client::connect_complete, this, std::placeholders::_1, std::placeholders::_2, ch_ctx_ptr)));
+			static_cast<ssl_channel_context*>(ch_ctx_ptr.get())->connect(it, ch_ctx_ptr->strand().wrap(std::bind(&ssl_client::connect_complete, this, std::placeholders::_1, std::placeholders::_2, ch_ctx_ptr)));
 		}
 	}
 
 	void handshake_complete(const asio::error_code& error, tcp_channel_context_base_ptr ch_ctx_ptr) {
 		ch_ctx_ptr->clear_task_in_progress(T_HANDSHAKE);
 		if (error)
-			fire_channel_exception_caught(ch_ctx_ptr, channel_error(error.message()));
+			ch_ctx_ptr->fire_exception_caught(channel_error(error.message()));
 		else
-			call_channel_connected(ch_ctx_ptr, ch_ctx_ptr->handler_strand().wrap(std::bind(&ssl_client::read_complete, this, std::placeholders::_1, std::placeholders::_2, ch_ctx_ptr)));
+			ch_ctx_ptr->call_channel_connected(ch_ctx_ptr->strand().wrap(std::bind(&ssl_client::read_complete, this, std::placeholders::_1, std::placeholders::_2, ch_ctx_ptr)));
 	}
 };
 

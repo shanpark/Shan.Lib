@@ -38,10 +38,14 @@
 #include "constants.h"
 #include "exception.h"
 #include "ip_port.h"
-#include "handler.h"
+#include "acceptor_handler.h"
+#include "channel_handler.h"
 #include "handler_pipeline.h"
+
 #include "acceptor.h"
 #include "channel_base.h"
 #include "context_base.h"
+
+#include "tcp_idle_monitor.h"
 
 #endif /* shan_net_h */

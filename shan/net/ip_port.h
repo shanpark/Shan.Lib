@@ -15,6 +15,7 @@ namespace net {
 class ip_port : public object {
 	friend class udp_channel;
 	friend class udp_service;
+	friend class udp_channel_context;
 public:
 	ip_port() = default; // unspecified address
 	ip_port(const std::string& ip_str, uint16_t port)

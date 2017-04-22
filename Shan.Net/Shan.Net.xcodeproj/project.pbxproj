@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		9057D2391EA9F469002091C4 /* shan_net_idle_test.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9057D2381EA9F469002091C4 /* shan_net_idle_test.cpp */; };
 		9067B0431E77CF0A00FEBD3B /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9067B0421E77CF0A00FEBD3B /* main.cpp */; };
 		9087B97F1E8B703500AFD809 /* shan_net_tcp_test.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9087B97E1E8B703500AFD809 /* shan_net_tcp_test.cpp */; };
 		9087B9811E8B757200AFD809 /* shan_net_udp_test.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9087B9801E8B757200AFD809 /* shan_net_udp_test.cpp */; };
@@ -31,13 +32,16 @@
 		90186A9C1E952E7600EF4F76 /* tcp_client_base.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = tcp_client_base.h; path = ../shan/net/tcp_client_base.h; sourceTree = "<group>"; };
 		903913481E88E99D00976D40 /* streambuf.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = streambuf.h; path = ../shan/util/streambuf.h; sourceTree = "<group>"; };
 		903913491E88EA7400976D40 /* exception.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = exception.h; path = ../shan/util/exception.h; sourceTree = "<group>"; };
+		9057D2351EA8F6C4002091C4 /* tcp_channel_context_base.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = tcp_channel_context_base.h; path = ../shan/net/tcp_channel_context_base.h; sourceTree = "<group>"; };
+		9057D2361EA8FFDC002091C4 /* tcp_channel_base.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = tcp_channel_base.h; path = ../shan/net/tcp_channel_base.h; sourceTree = "<group>"; };
+		9057D2381EA9F469002091C4 /* shan_net_idle_test.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = shan_net_idle_test.cpp; sourceTree = "<group>"; };
+		9057D23A1EAA0045002091C4 /* tcp_idle_monitor.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = tcp_idle_monitor.h; path = ../shan/net/tcp_idle_monitor.h; sourceTree = "<group>"; };
 		9067B03F1E77CF0A00FEBD3B /* Shan.Net */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = Shan.Net; sourceTree = BUILT_PRODUCTS_DIR; };
 		9067B0421E77CF0A00FEBD3B /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 		9067B0501E77CF9B00FEBD3B /* object.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = object.h; path = ../shan/object.h; sourceTree = "<group>"; };
 		9067B0521E77D03100FEBD3B /* net.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = net.h; path = ../shan/net/net.h; sourceTree = "<group>"; };
 		9067B0531E77D17D00FEBD3B /* acceptor.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = acceptor.h; path = ../shan/net/acceptor.h; sourceTree = "<group>"; };
 		9067B0541E77D19300FEBD3B /* channel_base.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = channel_base.h; path = ../shan/net/channel_base.h; sourceTree = "<group>"; };
-		9067B0551E77D24500FEBD3B /* handler.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = handler.h; path = ../shan/net/handler.h; sourceTree = "<group>"; };
 		9067B0571E77D31F00FEBD3B /* context_base.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = context_base.h; path = ../shan/net/context_base.h; sourceTree = "<group>"; };
 		9067B0581E77D4E900FEBD3B /* handler_pipeline.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = handler_pipeline.h; path = ../shan/net/handler_pipeline.h; sourceTree = "<group>"; };
 		9067B0591E77D99A00FEBD3B /* tcp_server.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = tcp_server.h; path = ../shan/net/tcp_server.h; sourceTree = "<group>"; };
@@ -60,7 +64,6 @@
 		9087B97E1E8B703500AFD809 /* shan_net_tcp_test.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = shan_net_tcp_test.cpp; sourceTree = "<group>"; };
 		9087B9801E8B757200AFD809 /* shan_net_udp_test.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = shan_net_udp_test.cpp; sourceTree = "<group>"; };
 		9087B9821E8B968F00AFD809 /* tcp_channel_context.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = tcp_channel_context.h; path = ../shan/net/tcp_channel_context.h; sourceTree = "<group>"; };
-		909E6C541E82B3BA005515B6 /* tcp_service_base.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = tcp_service_base.h; path = ../shan/net/tcp_service_base.h; sourceTree = "<group>"; };
 		90DEE7781E9257A200245316 /* ssl_server.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ssl_server.h; path = ../shan/net/ssl_server.h; sourceTree = "<group>"; };
 		90DEE7791E9329FB00245316 /* net_ssl.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = net_ssl.h; path = ../shan/net/net_ssl.h; sourceTree = "<group>"; };
 		90DEE77D1E93652700245316 /* libssl.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libssl.a; path = ../../../../../usr/local/lib/libssl.a; sourceTree = "<group>"; };
@@ -114,6 +117,7 @@
 				9087B97E1E8B703500AFD809 /* shan_net_tcp_test.cpp */,
 				90F365FB1E9494F8009B4078 /* shan_net_ssl_test.cpp */,
 				9087B9801E8B757200AFD809 /* shan_net_udp_test.cpp */,
+				9057D2381EA9F469002091C4 /* shan_net_idle_test.cpp */,
 			);
 			path = Shan.Net;
 			sourceTree = "<group>";
@@ -133,26 +137,26 @@
 			children = (
 				9067B0521E77D03100FEBD3B /* net.h */,
 				90DEE7791E9329FB00245316 /* net_ssl.h */,
-				9067B05D1E791B6800FEBD3B /* exception.h */,
 				9067B0611E7ABE7500FEBD3B /* constants.h */,
+				9067B05D1E791B6800FEBD3B /* exception.h */,
 				9087B97B1E8AB21D00AFD809 /* ip_port.h */,
-				9067B0551E77D24500FEBD3B /* handler.h */,
 				9067B05F1E7AB25400FEBD3B /* acceptor_handler.h */,
 				9067B0601E7AB6BB00FEBD3B /* channel_handler.h */,
 				9067B0581E77D4E900FEBD3B /* handler_pipeline.h */,
 				9067B0531E77D17D00FEBD3B /* acceptor.h */,
 				9067B0541E77D19300FEBD3B /* channel_base.h */,
+				9057D2361EA8FFDC002091C4 /* tcp_channel_base.h */,
 				9067B05E1E793ECA00FEBD3B /* tcp_channel.h */,
 				90DEE7831E93D2A600245316 /* ssl_channel.h */,
 				9087B9791E8A8AC200AFD809 /* udp_channel.h */,
 				9067B0571E77D31F00FEBD3B /* context_base.h */,
-				9067B0621E7B809500FEBD3B /* acceptor_context.h */,
 				9067B0631E7B81EF00FEBD3B /* channel_context.h */,
+				9067B0621E7B809500FEBD3B /* acceptor_context.h */,
+				9057D2351EA8F6C4002091C4 /* tcp_channel_context_base.h */,
 				9087B9821E8B968F00AFD809 /* tcp_channel_context.h */,
 				90DEE7841E93DA8100245316 /* ssl_channel_context.h */,
 				9087B97C1E8B421E00AFD809 /* udp_channel_context.h */,
 				9067B05B1E78F86300FEBD3B /* service_base.h */,
-				909E6C541E82B3BA005515B6 /* tcp_service_base.h */,
 				90F365FE1E95220B009B4078 /* tcp_server_base.h */,
 				9067B0591E77D99A00FEBD3B /* tcp_server.h */,
 				90186A9C1E952E7600EF4F76 /* tcp_client_base.h */,
@@ -161,6 +165,7 @@
 				90DEE7781E9257A200245316 /* ssl_server.h */,
 				90DEE7821E93A14600245316 /* ssl_client.h */,
 				9067B05C1E79026200FEBD3B /* udp_service.h */,
+				9057D23A1EAA0045002091C4 /* tcp_idle_monitor.h */,
 			);
 			name = net;
 			sourceTree = "<group>";
@@ -248,6 +253,7 @@
 				9087B9811E8B757200AFD809 /* shan_net_udp_test.cpp in Sources */,
 				90F365FC1E9494F8009B4078 /* shan_net_ssl_test.cpp in Sources */,
 				9087B97F1E8B703500AFD809 /* shan_net_tcp_test.cpp in Sources */,
+				9057D2391EA9F469002091C4 /* shan_net_idle_test.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

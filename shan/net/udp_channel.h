@@ -16,7 +16,6 @@ template<typename Protocol>
 class channel_context;
 
 class udp_channel : public channel_base<protocol::udp> {
-	friend class channel_context<protocol::udp>;
 	friend class udp_channel_context;
 public:
 	udp_channel(asio::ip::udp::socket&& socket, std::size_t buffer_base_size)

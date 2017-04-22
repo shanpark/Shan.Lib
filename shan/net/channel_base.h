@@ -158,10 +158,7 @@ protected:
 } // namespace net
 } // namespace shan
 
-#include "tcp_channel.h"
-#ifdef SHAN_NET_SSL_ENABLE
-#include "ssl_channel.h"
-#endif
+#include "tcp_channel_base.h"
 #include "udp_channel.h"
 
 #endif /* shan_net_channel_base_h */

@@ -69,23 +69,23 @@ public:
 			}
 
 			if (!ret.second) { // not inserted. already exist. this is a critical error!
-				fire_channel_exception_caught(ch_ctx_ptr, channel_error("critical error. duplicate id for new channel."));
+				ch_ctx_ptr->fire_exception_caught(channel_error("critical error. duplicate id for new channel."));
 				ch_ctx_ptr->close_immediately();
 			}
 			else { // successfully inserted.
-				ch_ctx_ptr->handler_strand().post([this, local_port, remote_address, remote_port, v, ch_ctx_ptr](){
-					call_channel_created(ch_ctx_ptr);
+				ch_ctx_ptr->strand().post([this, local_port, remote_address, remote_port, v, ch_ctx_ptr](){
+					ch_ctx_ptr->call_channel_created();
 
 					ch_ctx_ptr->open(v);
 					ch_ctx_ptr->bind(local_port);
 					if ((remote_address.length() == 0) || (remote_port == 0)) {
-						fire_channel_bound(ch_ctx_ptr, true, ch_ctx_ptr->handler_strand().wrap(std::bind(&udp_service::read_complete, this, std::placeholders::_1, std::placeholders::_2, ch_ctx_ptr)));
+						ch_ctx_ptr->call_channel_bound(true, ch_ctx_ptr->strand().wrap(std::bind(&udp_service::read_complete, this, std::placeholders::_1, std::placeholders::_2, ch_ctx_ptr)));
 					}
 					else {
-						fire_channel_bound(ch_ctx_ptr, false, ch_ctx_ptr->handler_strand().wrap(std::bind(&udp_service::read_complete, this, std::placeholders::_1, std::placeholders::_2, ch_ctx_ptr)));
+						ch_ctx_ptr->call_channel_bound(false, ch_ctx_ptr->strand().wrap(std::bind(&udp_service::read_complete, this, std::placeholders::_1, std::placeholders::_2, ch_ctx_ptr)));
 
 						asio::ip::udp::resolver::query query(remote_address, std::to_string(remote_port));
-						_resolver.async_resolve(query, ch_ctx_ptr->handler_strand().wrap(std::bind(&udp_service::resolve_complete, this, std::placeholders::_1, std::placeholders::_2, ch_ctx_ptr)));
+						_resolver.async_resolve(query, ch_ctx_ptr->strand().wrap(std::bind(&udp_service::resolve_complete, this, std::placeholders::_1, std::placeholders::_2, ch_ctx_ptr)));
 					}
 				});
 			}
@@ -118,24 +118,24 @@ public:
 			}
 
 			if (!ret.second) { // not inserted. already exist. this is a critical error!
-				fire_channel_exception_caught(ch_ctx_ptr, channel_error("critical error. duplicate id for new channel."));
+				ch_ctx_ptr->fire_exception_caught(channel_error("critical error. duplicate id for new channel."));
 				ch_ctx_ptr->close_immediately();
 			}
 			else { // successfully inserted.
-				ch_ctx_ptr->handler_strand().post([this, local_port, destination, v, ch_ctx_ptr](){
-					call_channel_created(ch_ctx_ptr);
+				ch_ctx_ptr->strand().post([this, local_port, destination, v, ch_ctx_ptr](){
+					ch_ctx_ptr->call_channel_created();
 
 					ch_ctx_ptr->open(v);
 					ch_ctx_ptr->bind(local_port);
 					if (!destination.is_valid()) {
-						fire_channel_bound(ch_ctx_ptr, true, ch_ctx_ptr->handler_strand().wrap(std::bind(&udp_service::read_complete, this, std::placeholders::_1, std::placeholders::_2, ch_ctx_ptr)));
+						ch_ctx_ptr->call_channel_bound(true, ch_ctx_ptr->strand().wrap(std::bind(&udp_service::read_complete, this, std::placeholders::_1, std::placeholders::_2, ch_ctx_ptr)));
 					}
 					else { // destination is already resolved. don't need to resolve address.
-						fire_channel_bound(ch_ctx_ptr, false, ch_ctx_ptr->handler_strand().wrap(std::bind(&udp_service::read_complete, this, std::placeholders::_1, std::placeholders::_2, ch_ctx_ptr)));
+						ch_ctx_ptr->call_channel_bound(false, ch_ctx_ptr->strand().wrap(std::bind(&udp_service::read_complete, this, std::placeholders::_1, std::placeholders::_2, ch_ctx_ptr)));
 
 						asio::ip::udp::resolver::iterator end;
 						// call base's connect method.
-						static_cast<udp_channel_context_base*>(ch_ctx_ptr.get())->connect(destination, ch_ctx_ptr->handler_strand().wrap(std::bind(&udp_service::connect_complete, this, std::placeholders::_1, end, ch_ctx_ptr)));
+						static_cast<udp_channel_context_base*>(ch_ctx_ptr.get())->connect(destination, ch_ctx_ptr->strand().wrap(std::bind(&udp_service::connect_complete, this, std::placeholders::_1, end, ch_ctx_ptr)));
 					}
 				});
 			}
@@ -145,15 +145,15 @@ public:
 		}
 	}
 
-	void write_channel_to(std::size_t channel_id, const ip_port& destination, object_ptr data) {
+	void write_channel_to(std::size_t channel_id, const ip_port& destination, object_ptr data_ptr) {
 		if (_stat == RUNNING) {
 			try {
-				typename decltype(_channel_contexts)::mapped_type ch_ctx_ptr;
+				std::shared_ptr<udp_channel_context> ch_ctx_ptr;
 				{
 					std::lock_guard<std::mutex> lock(_shared_mutex);
 					ch_ctx_ptr = std::static_pointer_cast<udp_channel_context>(_channel_contexts.at(channel_id));
 				}
-				fire_channel_write_to(ch_ctx_ptr, data, destination);
+				ch_ctx_ptr->fire_channel_write_to(data_ptr, destination);
 			} catch (const std::exception& e) {
 				throw service_error(e.what());
 			}
@@ -172,12 +172,12 @@ private:
 
 	void resolve_complete(const asio::error_code& error, asio::ip::udp::resolver::iterator it, udp_channel_context_ptr ch_ctx_ptr) {
 		if (error) {
-			fire_channel_exception_caught(ch_ctx_ptr, resolver_error("fail to resolve address"));
+			ch_ctx_ptr->fire_exception_caught(resolver_error("fail to resolve address"));
 			_channel_contexts.erase(ch_ctx_ptr->channel_id());
 		}
 		else {
 			ch_ctx_ptr->set_task_in_progress(T_CONNECT);
-			ch_ctx_ptr->connect(it, ch_ctx_ptr->handler_strand().wrap(std::bind(&udp_service::connect_complete, this, std::placeholders::_1, std::placeholders::_2, ch_ctx_ptr)));
+			ch_ctx_ptr->connect(it, ch_ctx_ptr->strand().wrap(std::bind(&udp_service::connect_complete, this, std::placeholders::_1, std::placeholders::_2, ch_ctx_ptr)));
 		}
 	}
 
@@ -186,220 +186,11 @@ private:
 		ch_ctx_ptr->clear_task_in_progress(T_CONNECT);
 
 		if (error) {
-			fire_channel_exception_caught(ch_ctx_ptr, channel_error(error.message()));
+			ch_ctx_ptr->fire_exception_caught(channel_error(error.message()));
 			_channel_contexts.erase(ch_ctx_ptr->channel_id());
 		}
 		else {
-			call_channel_connected(ch_ctx_ptr, ch_ctx_ptr->handler_strand().wrap(std::bind(&udp_service::read_complete, this, std::placeholders::_1, std::placeholders::_2, ch_ctx_ptr)));
-		}
-	}
-
-	void fire_channel_bound(udp_channel_context_ptr ch_ctx_ptr, bool call_read, std::function<read_complete_handler> read_handler) {
-		ch_ctx_ptr->handler_strand().post([this, ch_ctx_ptr, call_read, read_handler]() {
-			if (!ch_ctx_ptr->settable_stat(context_stat::BOUND))
-				return;
-			ch_ctx_ptr->stat(context_stat::BOUND);
-
-			ch_ctx_ptr->done(false); // reset context to 'not done'.
-			// <-- inbound
-			auto begin = channel_handlers().begin();
-			auto end = channel_handlers().end();
-			try {
-				for (auto it = begin ; !(ch_ctx_ptr->done()) && (it != end) ; it++)
-					(*it)->channel_bound(ch_ctx_ptr.get());
-			} catch (const std::exception& e) {
-				fire_channel_exception_caught(ch_ctx_ptr, channel_error(std::string("An exception has thrown in channel_connected handler. (") + e.what() + ")"));
-			}
-
-			if (call_read) {
-				if (ch_ctx_ptr->stat() == BOUND) {
-					ch_ctx_ptr->set_task_in_progress(T_READ);
-					ch_ctx_ptr->read(read_handler);
-				}
-			}
-		});
-	}
-
-	void call_channel_connected(udp_channel_context_ptr ch_ctx_ptr, std::function<read_complete_handler> read_handler) {
-		if (!ch_ctx_ptr->settable_stat(context_stat::CONNECTED))
-			return;
-	
-		ch_ctx_ptr->stat(context_stat::CONNECTED);
-		ch_ctx_ptr->connected(true);
-
-		ch_ctx_ptr->done(false); // reset context to 'not done'.
-		// <-- inbound
-		auto begin = channel_handlers().begin();
-		auto end = channel_handlers().end();
-		try {
-			for (auto it = begin ; !(ch_ctx_ptr->done()) && (it != end) ; it++)
-				(*it)->channel_connected(ch_ctx_ptr.get());
-		} catch (const std::exception& e) {
-			fire_channel_exception_caught(ch_ctx_ptr, channel_error(std::string("An exception has thrown in channel_connected handler. (") + e.what() + ")"));
-		}
-
-		if (ch_ctx_ptr->stat() == CONNECTED) {
-			ch_ctx_ptr->set_task_in_progress(T_READ);
-			ch_ctx_ptr->read(read_handler);
-		}
-
-		ch_ctx_ptr->handle_req_close(ch_ctx_ptr->handler_strand().wrap(std::bind(&udp_service::shutdown_complete, this, std::placeholders::_1, ch_ctx_ptr)));
-	}
-
-	virtual void call_channel_read(udp_channel_context_base_ptr ch_ctx_ptr, std::size_t bytes_transferred, std::function<read_complete_handler> read_handler) override {
-		auto ep = static_cast<udp_channel_context*>(ch_ctx_ptr.get())->sender();
-		ip_port ip(ep.address(), ep.port());
-
-		util::streambuf_ptr sb_ptr = ch_ctx_ptr->read_buf();
-		sb_ptr->commit(bytes_transferred);
-
-		ch_ctx_ptr->done(false); // reset context to 'not done'.
-
-		auto object_ptr = std::static_pointer_cast<object>(sb_ptr);
-		// <-- inbound
-		auto begin = channel_handlers().begin();
-		auto end = channel_handlers().end();
-		try {
-			for (auto it = begin ; !(ch_ctx_ptr->done()) && (it != end) ; it++)
-				(*it)->channel_read_from(static_cast<udp_channel_context*>(ch_ctx_ptr.get()), object_ptr, ip);
-		} catch (const std::exception& e) {
-			fire_channel_exception_caught(ch_ctx_ptr, channel_error(std::string("An exception has thrown in channel_read_from handler. (") + e.what() + ")"));
-		}
-
-		if ((ch_ctx_ptr->stat() == BOUND) || (ch_ctx_ptr->stat() == CONNECTED)) {
-			ch_ctx_ptr->set_task_in_progress(T_READ);
-			ch_ctx_ptr->read(read_handler);
-		}
-	}
-
-	virtual void fire_channel_write(udp_channel_context_base_ptr ch_ctx_ptr, object_ptr data) override {
-		ch_ctx_ptr->handler_strand().post([this, ch_ctx_ptr, data]() {
-			ch_ctx_ptr->done(false); // reset context to 'not done'.
-
-			auto write_obj = data;
-			// outbound -->
-			auto begin = channel_handlers().begin();
-			auto end = channel_handlers().end();
-			try {
-				for (auto it = begin ; !(ch_ctx_ptr->done()) && (it != end) ; it++)
-					(*it)->channel_write(static_cast<udp_channel_context*>(ch_ctx_ptr.get()), write_obj);
-			} catch (const std::exception& e) {
-				fire_channel_exception_caught(ch_ctx_ptr, channel_error(std::string("An exception has thrown in channel_write handler. (") + e.what() + ")"));
-			}
-
-			util::streambuf_ptr sb_ptr = std::dynamic_pointer_cast<util::streambuf>(write_obj);
-			if (sb_ptr) {
-				if ((ch_ctx_ptr->stat() == BOUND) || (ch_ctx_ptr->stat() == CONNECTED)) {
-					ch_ctx_ptr->set_task_in_progress(T_WRITE);
-					ch_ctx_ptr->write_streambuf(sb_ptr, ch_ctx_ptr->handler_strand().wrap(std::bind(&udp_service::write_complete, this, std::placeholders::_1, std::placeholders::_2, ch_ctx_ptr)));
-				}
-				else {
-					fire_channel_exception_caught(ch_ctx_ptr, channel_error("The status of the channel is not suitable for sending data."));
-				}
-			}
-			else {
-				fire_channel_exception_caught(ch_ctx_ptr, channel_error("The object to be transferred was not serialized to streambuf."));
-			}
-		});
-	}
-
-	void fire_channel_write_to(udp_channel_context_base_ptr ch_ctx_ptr, object_ptr data, const ip_port& destination) {
-		ch_ctx_ptr->handler_strand().post([this, ch_ctx_ptr, data, destination]() {
-			ch_ctx_ptr->done(false); // reset context to 'not done'.
-
-			auto write_obj = data;
-			// outbound -->
-			auto begin = channel_handlers().begin();
-			auto end = channel_handlers().end();
-			try {
-				for (auto it = begin ; !(ch_ctx_ptr->done()) && (it != end) ; it++)
-					(*it)->channel_write(static_cast<udp_channel_context*>(ch_ctx_ptr.get()), write_obj);
-			} catch (const std::exception& e) {
-				fire_channel_exception_caught(ch_ctx_ptr, channel_error(std::string("An exception has thrown in channel_write handler. (") + e.what() + ")"));
-			}
-
-			util::streambuf_ptr sb_ptr = std::dynamic_pointer_cast<util::streambuf>(write_obj);
-			if (sb_ptr) {
-				if ((ch_ctx_ptr->stat() == BOUND) || (ch_ctx_ptr->stat() == CONNECTED)) {
-					ch_ctx_ptr->set_task_in_progress(T_WRITE);
-					static_cast<udp_channel_context*>(ch_ctx_ptr.get())->write_streambuf_to(sb_ptr, destination, ch_ctx_ptr->handler_strand().wrap(std::bind(&udp_service::write_complete, this, std::placeholders::_1, std::placeholders::_2, ch_ctx_ptr)));
-				}
-				else {
-					fire_channel_exception_caught(ch_ctx_ptr, channel_error("The status of the channel is not suitable for sending data."));
-				}
-			}
-			else {
-				fire_channel_exception_caught(ch_ctx_ptr, channel_error("The object to be transferred was not serialized to streambuf."));
-			}
-		});
-	}
-
-	virtual void call_channel_written(udp_channel_context_base_ptr ch_ctx_ptr, std::size_t bytes_transferred) override {
-		if ((ch_ctx_ptr->stat() == context_stat::BOUND) || (ch_ctx_ptr->stat() == context_stat::CONNECTED)) { // if channel_disconnected() is already called, don't call channel_written().
-			ch_ctx_ptr->done(false); // reset context to 'not done'.
-			// <-- inbound
-			auto begin = channel_handlers().begin();
-			auto end = channel_handlers().end();
-			try {
-				for (auto it = begin ; !(ch_ctx_ptr->done()) && (it != end) ; it++)
-					(*it)->channel_written(static_cast<udp_channel_context*>(ch_ctx_ptr.get()), bytes_transferred);
-			} catch (const std::exception& e) {
-				fire_channel_exception_caught(ch_ctx_ptr, channel_error(std::string("An exception has thrown in channel_written handler. (") + e.what() + ")"));
-			}
-		}
-		
-		if ((ch_ctx_ptr->stat() == context_stat::BOUND) || (ch_ctx_ptr->stat() == context_stat::CONNECTED)) {
-			if (ch_ctx_ptr->has_data_to_write()) {
-				ch_ctx_ptr->set_task_in_progress(T_WRITE);
-				ch_ctx_ptr->write_next_streambuf(ch_ctx_ptr->handler_strand().wrap(std::bind(&udp_service::write_complete, this, std::placeholders::_1, std::placeholders::_2, ch_ctx_ptr)));
-			}
-		}
-	}
-
-	virtual void call_channel_disconnected(udp_channel_context_base_ptr ch_ctx_ptr) override {
-		// call channel_disconnected() handler, if needed
-		if (ch_ctx_ptr->connected()) {
-			ch_ctx_ptr->connected(false);
-
-			if (ch_ctx_ptr->settable_stat(context_stat::DISCONNECTED))
-				ch_ctx_ptr->stat(context_stat::DISCONNECTED);
-
-			ch_ctx_ptr->done(false); // reset context to 'not done'.
-			// <-- inbound
-			auto begin = channel_handlers().begin();
-			auto end = channel_handlers().end();
-			try {
-				for (auto it = begin ; !(ch_ctx_ptr->done()) && (it != end) ; it++)
-					(*it)->channel_disconnected(static_cast<udp_channel_context*>(ch_ctx_ptr.get()));
-			} catch (const std::exception& e) {
-				fire_channel_exception_caught(ch_ctx_ptr, channel_error(std::string("An exception has thrown in channel_disconnected handler. (") + e.what() + ")"));
-			}
-		}
-
-		// close channel, if needed
-		std::size_t ch_id = ch_ctx_ptr->channel_id();
-		if (ch_ctx_ptr->settable_stat(context_stat::CLOSED))
-			ch_ctx_ptr->close_immediately();
-
-		// erase context
-		{
-			std::lock_guard<std::mutex> lock(_shared_mutex);
-			_channel_contexts.erase(ch_id);
-		}
-	}
-
-	virtual void fire_channel_close(udp_channel_context_base_ptr ch_ctx_ptr) override {
-		if ((ch_ctx_ptr->stat() >= context_stat::OPEN) && (ch_ctx_ptr->stat() < context_stat::REQ_CLOSE)) {
-			ch_ctx_ptr->stat(context_stat::REQ_CLOSE); // must change stat to REQ_CLOSE instantly to prevent different operations from being fired.
-
-			ch_ctx_ptr->handler_strand().post([this, ch_ctx_ptr](){
-				if (ch_ctx_ptr->stat() == context_stat::REQ_CLOSE) {
-					if (ch_ctx_ptr->is_channel_busy())
-						ch_ctx_ptr->cancel_all(); // some complete handlers(read_complete, write_complete, ...) will be called.
-					else
-						ch_ctx_ptr->close_gracefully(ch_ctx_ptr->handler_strand().wrap(std::bind(&udp_service::shutdown_complete, this, std::placeholders::_1, ch_ctx_ptr)));
-				}
-			});
+			ch_ctx_ptr->call_channel_connected(ch_ctx_ptr->strand().wrap(std::bind(&udp_service::read_complete, this, std::placeholders::_1, std::placeholders::_2, ch_ctx_ptr)));
 		}
 	}
 

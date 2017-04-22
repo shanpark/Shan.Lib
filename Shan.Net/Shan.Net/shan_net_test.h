@@ -12,5 +12,6 @@
 void shan_net_tcp_test();
 void shan_net_ssl_test();
 void shan_net_udp_test();
+void shan_net_idle_test();
 
 #endif /* shan_net_test_h */

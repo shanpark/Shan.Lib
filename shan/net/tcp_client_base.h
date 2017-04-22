@@ -12,10 +12,10 @@
 namespace shan {
 namespace net {
 
-class tcp_client_base : public tcp_service_base {
+class tcp_client_base : public service_base<protocol::tcp> {
 public:
 	tcp_client_base(std::size_t worker_count = 2, std::size_t buffer_base_size = default_buffer_base_size)
-	: tcp_service_base(worker_count, buffer_base_size), _resolver(_io_service) {}
+	: service_base<protocol::tcp>(worker_count, buffer_base_size), _resolver(_io_service) {}
 
 	virtual ~tcp_client_base() {
 		// Note: service's destructor must not be called in worker thread(channel handler)
@@ -36,9 +36,9 @@ public:
 			asio::ip::tcp::resolver::query query(address, std::to_string(port));
 
 			auto ch_ctx_ptr = new_channel_context();
-			ch_ctx_ptr->handler_strand().post([this, query, ch_ctx_ptr](){
-				call_channel_created(ch_ctx_ptr);
-				_resolver.async_resolve(query, ch_ctx_ptr->handler_strand().wrap(std::bind(&tcp_client_base::resolve_complete, this, std::placeholders::_1, std::placeholders::_2, ch_ctx_ptr)));
+			ch_ctx_ptr->strand().post([this, query, ch_ctx_ptr](){
+				ch_ctx_ptr->call_channel_created();
+				_resolver.async_resolve(query, ch_ctx_ptr->strand().wrap(std::bind(&tcp_client_base::resolve_complete, this, std::placeholders::_1, std::placeholders::_2, ch_ctx_ptr)));
 			});
 		}
 		else {
@@ -49,12 +49,12 @@ public:
 	void connect(ip_port destination) {
 		if (_stat == RUNNING) {
 			auto ch_ctx_ptr = new_channel_context();
-			ch_ctx_ptr->handler_strand().post([this, destination, ch_ctx_ptr](){
-				call_channel_created(ch_ctx_ptr);
+			ch_ctx_ptr->strand().post([this, destination, ch_ctx_ptr](){
+				ch_ctx_ptr->call_channel_created();
 
 				asio::ip::tcp::resolver::iterator end;
 				ch_ctx_ptr->set_task_in_progress(T_CONNECT);
-				ch_ctx_ptr->connect(destination, ch_ctx_ptr->handler_strand().wrap(std::bind((&tcp_client_base::connect_complete), this, std::placeholders::_1, end, ch_ctx_ptr)));
+				ch_ctx_ptr->connect(destination, ch_ctx_ptr->strand().wrap(std::bind((&tcp_client_base::connect_complete), this, std::placeholders::_1, end, ch_ctx_ptr)));
 			});
 		}
 		else {
@@ -77,7 +77,7 @@ protected:
 		ch_ctx_ptr->clear_task_in_progress(T_CONNECT);
 
 		if (error) {
-			fire_channel_exception_caught(ch_ctx_ptr, channel_error(error.message()));
+			ch_ctx_ptr->fire_exception_caught(channel_error(error.message()));
 		}
 		else {
 			auto pair = std::make_pair(ch_ctx_ptr->channel_id(), ch_ctx_ptr);
@@ -97,7 +97,7 @@ protected:
 				ret.second = false;
 			}
 			if (!ret.second) { // not inserted. already exist. this is a critical error!
-				fire_channel_exception_caught(ch_ctx_ptr, channel_error("critical error. duplicate id for new channel."));
+				ch_ctx_ptr->fire_exception_caught(channel_error("critical error. duplicate id for new channel."));
 				ch_ctx_ptr->close_immediately();
 			}
 			else {
@@ -112,5 +112,10 @@ protected:
 
 } // namespace net
 } // namespace shan
+
+#include "tcp_client.h"
+#ifdef SHAN_NET_SSL_ENABLE
+#include "ssl_client.h"
+#endif
 
 #endif /* shan_net_tcp_client_base_h */

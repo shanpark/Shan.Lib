@@ -38,9 +38,9 @@ enum context_stat : uint8_t {
 	CLOSED // all
 };
 
-class context_base : public object {
+class context_base : public object, public std::enable_shared_from_this<context_base> {
 public:
-	context_base(asio::io_service& io_service)
+	context_base()
 	: _done(false), _connected(false), _task_in_progress(T_NONE), _stat(CREATED) {}
 
 	void done(bool done) {
@@ -69,11 +69,11 @@ protected:
 	}
 
 	bool is_task_in_progress(channel_task task) {
-		return (_task_in_progress | task);
+		return static_cast<bool>(_task_in_progress | task);
 	}
 
 	bool is_channel_busy() {
-		return (_task_in_progress & T_BUSY);
+		return static_cast<bool>(_task_in_progress & T_BUSY);
 	}
 
 	bool settable_stat(context_stat s) {
@@ -100,7 +100,7 @@ protected:
 } // namespace net
 } // namespace shan
 
-#include "acceptor_context.h"
 #include "channel_context.h"
+#include "acceptor_context.h"
 
 #endif /* shan_net_context_base_h */

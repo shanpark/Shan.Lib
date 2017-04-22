@@ -14,9 +14,12 @@ namespace net {
 
 class acceptor_context;
 
-class acceptor_handler : public handler {
+class acceptor_handler : public object {
 public:
 	virtual void channel_accepted(shan::net::acceptor_context* ctx, const std::string& address, uint16_t port) {} // <-- inbound
+
+	virtual void user_event(shan::net::acceptor_context* ctx) {} // <-- inbound
+	virtual void exception_caught(shan::net::acceptor_context* ctx, const std::exception& e) {} // <-- inbound
 };
 
 } // namespace net

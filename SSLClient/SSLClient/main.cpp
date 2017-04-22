@@ -77,12 +77,12 @@ public:
 //		cout << "!!!! cli_ch_handler destroyed" << endl;
 	};
 
-	virtual void user_event(context_base* ctx) override {
+	virtual void user_event(tcp_channel_context_base* ctx, int64_t id, shan::object_ptr data_ptr) override {
 //		std::lock_guard<std::mutex> _lock(_mutex);
 //		cout << static_cast<ssl_channel_context*>(ctx)->channel_id() << ":cli_ch_handler::" << "user_event() called" << endl;
 	}
 
-	virtual void exception_caught(context_base* ctx, const std::exception& e) override {
+	virtual void exception_caught(tcp_channel_context_base* ctx, const std::exception& e) override {
 		{
 			std::lock_guard<std::mutex> _lock(_mutex);
 			exc++;
@@ -136,16 +136,12 @@ public:
 			std::lock_guard<std::mutex> _lock(_mutex);
 			dis_conn++;
 			cout << static_cast<ssl_channel_context*>(ctx)->channel_id() << ":" << std::this_thread::get_id() << ":cli_ch_handler::" << "channel_disconnected() called:" << dis_conn << endl;
-		}
 
-		if (dis_conn == (CLIENT_COUNT - exc)) {
-//		if (dis_conn >= CLIENT_COUNT) {
-			cout << "SSLClient request stop [disconn]@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@" << endl;
-			scli_p->request_stop(); // stop()호출 뒤에 발생되는 이벤트는 핸들러 호출이 되지 않는다.
+			if (dis_conn == (CLIENT_COUNT - exc)) {
+				cout << "SSLClient request stop [disconn]@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@" << endl;
+				scli_p->request_stop(); // stop()호출 뒤에 발생되는 이벤트는 핸들러 호출이 되지 않는다.
+			}
 		}
-//		else {
-//			scli_p->connect("127.0.0.1", 10888);
-//		}
 	}
 };
 
@@ -179,7 +175,11 @@ int main(int argc, const char * argv[]) {
 
 #ifdef RASPI_TEST
 	std::chrono::milliseconds dura(9);
-#else
+#endif
+#ifdef WIN64_TEST
+	std::chrono::milliseconds dura(20);
+#endif
+#ifdef MACOS_TEST
 	std::chrono::milliseconds dura(1);
 #endif
 	for (int inx = 0 ; inx < CLIENT_COUNT ; inx++) {

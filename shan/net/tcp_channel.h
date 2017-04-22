@@ -15,8 +15,7 @@ namespace net {
 template<typename Protocol>
 class channel_context;
 
-class tcp_channel : public channel_base<protocol::tcp> {
-	friend class channel_context<protocol::tcp>;
+class tcp_channel : public tcp_channel_base {
 	friend class tcp_channel_context;
 	friend class tcp_server;
 public:
@@ -32,10 +31,6 @@ private:
 		return reinterpret_cast<std::size_t>(const_cast<tcp_channel*>(this));
 	}
 
-	virtual void open(ip v) override {
-		socket().open((v == ip::v6) ? asio::ip::tcp::v6() : asio::ip::tcp::v4());
-	}
-
 	virtual void close_gracefully(std::function<shutdown_complete_handler> shutdown_handler) noexcept override {
 		close_immediately();
 	}
@@ -48,26 +43,6 @@ private:
 		}
 	}
 
-	virtual void close_without_shutdown() noexcept override {
-		if (socket().is_open()) {
-			asio::error_code ec;
-			socket().close(ec); // Note that, even if the function indicates an error, the underlying descriptor is closed.
-		}
-	}
-
-	virtual void cancel_all() noexcept override {
-		socket().cancel();
-	}
-
-	virtual void connect(const ip_port& destination, std::function<connect_complete_handler> connect_handler) override {
-		asio::ip::tcp::endpoint ep(asio::ip::address::from_string(destination.ip()), destination.port());
-		socket().async_connect(ep, connect_handler);
-	}
-
-	void connect(asio::ip::tcp::resolver::iterator it, std::function<tcp_connect_complete_handler> connect_handler) {
-		asio::async_connect(socket(), it, connect_handler);
-	}
-
 	virtual void read(util::streambuf_ptr read_sb_ptr, std::function<read_complete_handler> read_handler) noexcept override {
 		socket().async_read_some(asio::buffer(read_sb_ptr->prepare(read_sb_ptr->base_size()), read_sb_ptr->base_size()), read_handler);
 	}
@@ -77,14 +52,6 @@ private:
 
 		if (_write_buf_queue.size() == 1)
 			asio::async_write(socket(), asio::buffer(write_sb_ptr->in_ptr(), write_sb_ptr->in_size()), write_handler);
-	}
-
-	virtual void remove_sent_data() override {
-		_write_buf_queue.pop_front();
-	}
-
-	virtual bool has_data_to_write() override {
-		return (!_write_buf_queue.empty());
 	}
 
 	virtual void write_next_streambuf(std::function<write_complete_handler> write_handler) override {
@@ -102,7 +69,6 @@ private:
 
 private:
 	asio::ip::tcp::socket _socket;
-	std::deque<util::streambuf_ptr> _write_buf_queue;
 };
 
 using tcp_channel_ptr = std::shared_ptr<tcp_channel>;

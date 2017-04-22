@@ -34,12 +34,12 @@ int dis_conn = 0;
 int wt = 0;
 
 class acpt_handler_s : public acceptor_handler {
-	virtual void user_event(context_base* ctx) override {
+	virtual void user_event(acceptor_context* ctx) override {
 		std::lock_guard<std::mutex> _lock(_mutex);
 		cout << "acpt_handler::" << "user_event() called" << endl;
 	}
 
-	virtual void exception_caught(context_base* ctx, const std::exception& e) override {
+	virtual void exception_caught(acceptor_context* ctx, const std::exception& e) override {
 		std::lock_guard<std::mutex> _lock(_mutex);
 		cout << "acpt_handler::" << "exception_caught() - " << e.what() << "@@@@@@@@@@@@@@@@@@@@@" << endl;
 		exc++;
@@ -91,12 +91,12 @@ public:
 		cout << ">>>> serv_ch_handler destroyed!!!!" << endl;
 	};
 
-	virtual void user_event(context_base* ctx) override {
+	virtual void user_event(tcp_channel_context_base* ctx, int64_t id, shan::object_ptr data_ptr) override {
 		std::lock_guard<std::mutex> _lock(_mutex);
 		cout << static_cast<ssl_channel_context*>(ctx)->channel_id() << ":serv_ch_handler::" << "user_event() called" << endl;
 	}
 
-	virtual void exception_caught(context_base* ctx, const std::exception& e) override {
+	virtual void exception_caught(tcp_channel_context_base* ctx, const std::exception& e) override {
 		std::lock_guard<std::mutex> _lock(_mutex);
 		cout << static_cast<ssl_channel_context*>(ctx)->channel_id() << ":serv_ch_handler::" << "exception_caught() - " << e.what() << "@@@@@@@@@@@@@@@@@@@@@" << endl;
 	}

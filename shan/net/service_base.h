@@ -15,6 +15,8 @@ namespace net {
 template<typename Protocol>
 class service_base : public object {
 	friend class channel_context<Protocol>;
+	friend class tcp_channel_context_base;
+	friend class udp_channel_context;
 protected:
 	static const int default_buffer_base_size = 4096;
 
@@ -40,14 +42,19 @@ public:
 			throw service_error("the service is already started");
 	}
 
-	////////////////////////////////////////////////////////////////////////////
-	// wait_stop() must not be called in any handler. A deadlock will be caused.
+	/**
+	 wait_stop() must not be called in any handler. A deadlock will be caused.
+	 */
 	void wait_stop() {
 		std::unique_lock<std::mutex> lock(_service_mutex);
 		if ((RUNNING <= _stat) && (_stat < STOPPED))
 			_service_cv.wait(lock, [this](){ return (_stat == STOPPED); });
 	}
-	
+
+	/**
+	 requests the service to stop all tasks. and can be called in handlers.
+	 but if you call this in two handlers concurrently, a deadlock can be caused.
+	 */
 	void request_stop() {
 		std::lock_guard<std::mutex> lock(_service_mutex);
 		if ((_stat == RUNNING) && !_stop_thread_ptr) {
@@ -59,7 +66,7 @@ public:
 		}
 	}
 
-	void write_channel(std::size_t channel_id, object_ptr data) {
+	void write_channel(std::size_t channel_id, object_ptr data_ptr) {
 		if (_stat == RUNNING) {
 			try {
 				typename decltype(_channel_contexts)::mapped_type ch_ctx_ptr;
@@ -67,7 +74,7 @@ public:
 					std::lock_guard<std::mutex> lock(_shared_mutex);
 					ch_ctx_ptr = _channel_contexts.at(channel_id);
 				}
-				fire_channel_write(ch_ctx_ptr, data);
+				ch_ctx_ptr->fire_channel_write(data_ptr);
 			} catch (const std::exception& e) {
 				throw service_error(e.what());
 			}
@@ -84,10 +91,33 @@ public:
 				std::lock_guard<std::mutex> lock(_shared_mutex);
 				ch_ctx_ptr = _channel_contexts.at(channel_id);
 			}
-			fire_channel_close(ch_ctx_ptr);
+			ch_ctx_ptr->fire_channel_close();
 		} catch (const std::exception&) {
 			// if no such channel exists.
 			// the channel will be closed. nothing happens.
+		}
+	}
+
+	void fire_user_event_channel(std::size_t channel_id, int64_t id, object_ptr param_ptr) noexcept {
+		try {
+			typename decltype(_channel_contexts)::mapped_type ch_ctx_ptr;
+			{
+				std::lock_guard<std::mutex> lock(_shared_mutex);
+				ch_ctx_ptr = _channel_contexts.at(channel_id);
+			}
+			ch_ctx_ptr->fire_user_event(id, param_ptr);
+		} catch (const std::exception&) {
+			// if no such channel exists.
+			// the channel was deleted
+		}
+	}
+
+	channel_context<Protocol>* channel_context_of(std::size_t channel_id) noexcept {
+		try {
+			return _channel_contexts.at(channel_id).get();
+		} catch (const std::exception&) {
+			// no such channel id
+			return nullptr;
 		}
 	}
 
@@ -112,7 +142,7 @@ protected:
 		_close_all_channel_immediately();
 	}
 
-	const std::vector<channel_handler_ptr<Protocol>>& channel_handlers() const {
+	const handler_vector<Protocol>& channel_handlers() const {
 		return _channel_pipeline_ptr->handlers();
 	}
 
@@ -127,22 +157,30 @@ protected:
 				// not treat as an error.
 			}
 			else {
-				fire_channel_exception_caught(ch_ctx_ptr, channel_error(error.message()));
+				ch_ctx_ptr->fire_exception_caught(channel_error(error.message()));
 			}
 
-			call_channel_disconnected(ch_ctx_ptr); // All errors cause end of the connection.
+			std::size_t ch_id = ch_ctx_ptr->channel_id();
+			ch_ctx_ptr->call_channel_disconnected(); // All errors cause end of the connection.
+
+			// erase context
+			{
+				std::lock_guard<std::mutex> lock(_shared_mutex);
+				_channel_contexts.erase(ch_id); // if ch_id not exists, nothing happens.
+			}
 		}
 		else {
-			call_channel_read(ch_ctx_ptr, bytes_transferred, ch_ctx_ptr->handler_strand().wrap(std::bind(&service_base::read_complete, this, std::placeholders::_1, std::placeholders::_2, ch_ctx_ptr)));
+			ch_ctx_ptr->call_channel_read(bytes_transferred, ch_ctx_ptr->strand().wrap(std::bind(&service_base::read_complete, this, std::placeholders::_1, std::placeholders::_2, ch_ctx_ptr)));
 		}
 
-		// 위의 call_channel_read()에서 fire_channel_close()가 호출되었다면
-		// 상태는 REQ_CLOSE로 바뀌었을 것이고 close 작업을 해줄 람다를 post 했을 것이다.
-		// 하지만 여기도 strand에서 실행되는 상태이므로 만약 busy가 아니라면 여기서 바로 close_gracefully()를
-		// 호출해준다. 나중에 람다가 실행될 때 다시 stat()을 체크하므로 두 번 수행될 일은 없다.
-		// 대신 busy 상태라고 하더라도 cancel_all()을 호출해주진 않는다. 그건 람다에서 처리될 것이다.
-		// 이 로직은 clear_task가 호출되는 handler의 끝에서 검사가 매번 되어야 한다. 그래야 busy 상태가 해제되는 즉시 close_gracefully()가 호출될 수 있다.
-		ch_ctx_ptr->handle_req_close(ch_ctx_ptr->handler_strand().wrap(std::bind(&service_base::shutdown_complete, this, std::placeholders::_1, ch_ctx_ptr)));
+		// channel_read() 핸들러에서 close()를 호출했다면 context 상태는 REQ_CLOSE로 바뀌었을 것이고
+		// close 작업을 수행할 lambda가 post되었을 것이다. 하지만 여기도 strand에서 실행되는 상태이므로
+		// 만약 busy가 아니라면 여기서 바로 close_gracefully()를 호출한다.
+		// 나중에 lambda가 호출되었을 때 다시 stat을 검사하므로 두 번 close를 수행하진 않는다.
+		// busy 상태가 아니므로 cancel_all()을 호출하진 않는다.
+		// 이 method는 clear_task_in_progress()가 호출되는 handler의 끝에서 매번 호출되어야
+		// busy 상태가 해제되는 즉시 close_gracefully()가 호출 될 수 있다.
+		ch_ctx_ptr->handle_req_close(ch_ctx_ptr->strand().wrap(std::bind(&service_base::shutdown_complete, this, std::placeholders::_1, ch_ctx_ptr)));
 	}
 
 	void write_complete(const asio::error_code& error, std::size_t bytes_transferred, channel_context_ptr<Protocol> ch_ctx_ptr) {
@@ -151,70 +189,29 @@ protected:
 		ch_ctx_ptr->remove_sent_data();
 
 		if (error) {
-			fire_channel_exception_caught(ch_ctx_ptr, channel_error(error.message()));
+			ch_ctx_ptr->fire_exception_caught(channel_error(error.message()));
 		}
 		else {
-			call_channel_written(ch_ctx_ptr, bytes_transferred);
+			ch_ctx_ptr->call_channel_written(bytes_transferred);
 		}
 
-		ch_ctx_ptr->handle_req_close(ch_ctx_ptr->handler_strand().wrap(std::bind(&service_base::shutdown_complete, this, std::placeholders::_1, ch_ctx_ptr)));
+		ch_ctx_ptr->handle_req_close(ch_ctx_ptr->strand().wrap(std::bind(&service_base::shutdown_complete, this, std::placeholders::_1, ch_ctx_ptr)));
 	}
 
 	void shutdown_complete(const asio::error_code& error, channel_context_ptr<Protocol> ch_ctx_ptr) {
 		ch_ctx_ptr->clear_task_in_progress(T_SHUTDOWN);
 		ch_ctx_ptr->close_without_shutdown(); // shutdown completed. just close without shutdown.
 
-		if (ch_ctx_ptr->connected())
-			call_channel_disconnected(ch_ctx_ptr);
-	}
+		if (ch_ctx_ptr->connected()) {
+			std::size_t ch_id = ch_ctx_ptr->channel_id();
+			ch_ctx_ptr->call_channel_disconnected();
 
-	virtual void call_channel_created(channel_context_ptr<Protocol> ch_ctx_ptr) {
-		ch_ctx_ptr->done(false); // reset context to 'not done'.
-		// <-- inbound
-		auto begin = channel_handlers().begin();
-		auto end = channel_handlers().end();
-		try {
-			for (auto it = begin ; !(ch_ctx_ptr->done()) && (it != end) ; it++)
-				(*it)->channel_created(ch_ctx_ptr.get(), ch_ctx_ptr->channel_p());
-		} catch (const std::exception& e) {
-			fire_channel_exception_caught(ch_ctx_ptr, channel_error(std::string("An exception has thrown in channel_created handler. (") + e.what() + ")"));
+			// erase context
+			{
+				std::lock_guard<std::mutex> lock(_shared_mutex);
+				_channel_contexts.erase(ch_id); // if ch_id not exists, nothing happens.
+			}
 		}
-	}
-
-	virtual void call_channel_read(channel_context_ptr<Protocol> ch_ctx_ptr, std::size_t bytes_transferred, std::function<read_complete_handler> read_handler) = 0;
-	virtual void fire_channel_write(channel_context_ptr<Protocol> ch_ctx_ptr, object_ptr data) = 0;
-	virtual void call_channel_written(channel_context_ptr<Protocol> ch_ctx_ptr, std::size_t bytes_transferred) = 0;
-	virtual void call_channel_disconnected(channel_context_ptr<Protocol> ch_ctx_ptr) = 0;
-	virtual void fire_channel_close(channel_context_ptr<Protocol> ch_ctx_ptr) = 0;
-
-	void fire_channel_exception_caught(channel_context_ptr<Protocol> ch_ctx_ptr, const channel_error& e) {
-		ch_ctx_ptr->handler_strand().post([this, ch_ctx_ptr, e]() {
-			ch_ctx_ptr->done(false); // reset context to 'not done'.
-			// <-- inbound
-			auto begin = channel_handlers().begin();
-			auto end = channel_handlers().end();
-			try {
-				for (auto it = begin ; !(ch_ctx_ptr->done()) && (it != end) ; it++)
-					(*it)->exception_caught(ch_ctx_ptr.get(), e);
-			} catch (const std::exception& e2) {
-				fire_channel_exception_caught(ch_ctx_ptr, channel_error(std::string("An exception has thrown in exception_caught handler. (") + e2.what() + ")")); // can cause infinite exception...
-			}
-		});
-	}
-	
-	void fire_channel_exception_caught(channel_context_ptr<Protocol> ch_ctx_ptr, const resolver_error& e) {
-		ch_ctx_ptr->handler_strand().post([this, ch_ctx_ptr, e]() {
-			ch_ctx_ptr->done(false); // reset context to 'not done'.
-			// <-- inbound
-			auto begin = channel_handlers().begin();
-			auto end = channel_handlers().end();
-			try {
-				for (auto it = begin ; !(ch_ctx_ptr->done()) && (it != end) ; it++)
-					(*it)->exception_caught(ch_ctx_ptr.get(), e);
-			} catch (const std::exception& e2) {
-				fire_channel_exception_caught(ch_ctx_ptr, channel_error(std::string("An exception has thrown in exception_caught handler. (") + e2.what() + ")")); // can cause infinite exception...
-			}
-		});
 	}
 
 	void _join_worker_threads() {
@@ -267,7 +264,8 @@ protected:
 } // namespace net
 } // namespace shan
 
-#include "tcp_service_base.h"
-#include "udp_service.h"
+#ifdef SHAN_NET_SSL_ENABLE
+#include "ssl_service_base.h"
+#endif
 
 #endif /* shan_net_service_base_h */

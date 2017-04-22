@@ -69,17 +69,22 @@ public:
 		cout << ">>>> serv_ch_handler destroyed!!!!" << endl;
 	};
 
-	virtual void user_event(context_base* ctx) override {
-		std::lock_guard<std::mutex> _lock(_mutex);
-		cout << "serv_ch_handler::" << "user_event() called" << endl;
+	virtual void user_event(udp_channel_context* ctx, int64_t id, shan::object_ptr data_ptr) override {
+		{
+			std::lock_guard<std::mutex> _lock(_mutex);
+			cout << "serv_ch_handler::" << "user_event(" << id << ") called" << endl;
+		}
+
+		ctx->close();
+		userv_p->request_stop(); // stop이 호출되면 더 이상의 이벤트는 발생하지 않는다.
 	}
 
-	virtual void exception_caught(context_base* ctx, const std::exception& e) override {
+	virtual void exception_caught(udp_channel_context* ctx, const std::exception& e) override {
 		std::lock_guard<std::mutex> _lock(_mutex);
 		cout << "serv_ch_handler::" << "exception_caught() - " << e.what() << endl;
 	}
 
-	virtual void channel_created(shan::net::udp_channel_context_base* ctx, channel_base<protocol::udp>* channel) override {
+	virtual void channel_created(udp_channel_context* ctx, channel_base<protocol::udp>* channel) override {
 		std::lock_guard<std::mutex> _lock(_mutex);
 		cout << "serv_ch_handler::" << "channel_created(" << ctx->channel_id() << ") called" << endl;
 	}
@@ -122,8 +127,7 @@ public:
 		}
 
 		if (c == 2) {
-			ctx->close();
-			userv_p->request_stop(); // stop이 호출되면 더 이상의 이벤트는 발생하지 않는다.
+			ctx->fire_user_event(100, nullptr);
 		}
 	}
 
@@ -143,17 +147,17 @@ public:
 		cout << ">>>> cli_ch_handler destroyed" << endl;
 	};
 
-	virtual void user_event(context_base* ctx) override {
+	virtual void user_event(udp_channel_context* ctx, int64_t id, shan::object_ptr data_ptr) override {
 		std::lock_guard<std::mutex> _lock(_mutex);
 		cout << "cli_ch_handler::" << "user_event() called" << endl;
 	}
 
-	virtual void exception_caught(context_base* ctx, const std::exception& e) override {
+	virtual void exception_caught(udp_channel_context* ctx, const std::exception& e) override {
 		std::lock_guard<std::mutex> _lock(_mutex);
 		cout << "cli_ch_handler::" << "exception_caught() - " << e.what() << endl;
 	}
 
-	virtual void channel_created(shan::net::udp_channel_context_base* ctx, channel_base<protocol::udp>* channel) override {
+	virtual void channel_created(udp_channel_context* ctx, channel_base<protocol::udp>* channel) override {
 		std::lock_guard<std::mutex> _lock(_mutex);
 		cout << "cli_ch_handler::" << "channel_created(" << ctx->channel_id() << ") called" << endl;
 	}

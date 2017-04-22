@@ -31,7 +31,7 @@ public:
 	}
 
 	// to meke poolable object.
-	virtual void reset(std::size_t base_size) noexcept { // parameters must be the same as the constructor.
+	virtual void reset(std::size_t base_size) noexcept { // parameter types must be the same as the constructor.
 		setg(&_buffer[0], &_buffer[0], &_buffer[0]);
 		setp(&_buffer[0], &_buffer[0] + _buffer.size());
 	}

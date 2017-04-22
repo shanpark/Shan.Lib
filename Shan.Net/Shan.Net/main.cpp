@@ -96,5 +96,8 @@ int main(int argc, const char * argv[]) {
 	std::cout << std::endl << "========== UDP test ==========" << std::endl;
 	shan_net_udp_test();
 
+	std::cout << std::endl << "========== idle test ==========" << std::endl;
+	shan_net_idle_test();
+
 	return 0;
 }

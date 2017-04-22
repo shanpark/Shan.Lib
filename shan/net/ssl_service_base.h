@@ -439,7 +439,4 @@ protected:
 } // namespace net
 } // namespace shan
 
-#include "ssl_server.h"
-#include "ssl_client.h"
-
 #endif /* shan_net_ssl_service_base_h */

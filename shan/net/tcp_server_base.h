@@ -12,10 +12,11 @@
 namespace shan {
 namespace net {
 
-class tcp_server_base : public tcp_service_base {
+class tcp_server_base : public service_base<protocol::tcp> {
+	friend class acceptor_context;
 public:
 	tcp_server_base(std::size_t worker_count = 4, std::size_t buffer_base_size = default_buffer_base_size)
-	: tcp_service_base(worker_count, buffer_base_size)
+	: service_base<protocol::tcp>(worker_count, buffer_base_size)
 	, _acceptor_pipeline_ptr(new acceptor_pipeline()) {}
 
 	virtual ~tcp_server_base() {
@@ -50,7 +51,7 @@ public:
 				_acceptor_context_ptr->accept(socket_of_new_channel(), std::bind(&tcp_server_base::accept_complete, this, std::placeholders::_1, std::placeholders::_2)); // don't have to wrap handler
 			}
 		} catch (const std::exception& e) {
-			fire_acceptor_exception_caught(acceptor_error(e.what()));
+			_acceptor_context_ptr->call_exception_caught(this, acceptor_error(e.what()));
 		}
 	}
 
@@ -78,7 +79,7 @@ protected:
 			if (error == asio::error::operation_aborted)
 				return; // acceptor closed.
 			else
-				fire_acceptor_exception_caught(acceptor_error(error.message()));
+				_acceptor_context_ptr->call_exception_caught(this, acceptor_error(error.message()));
 		}
 		else {
 			auto ch_ctx_ptr = new_channel_context();
@@ -99,11 +100,11 @@ protected:
 				ret.second = false;
 			}
 			if (!ret.second) { // not inserted. already exist. this is a critical error!
-				fire_channel_exception_caught(ch_ctx_ptr, channel_error("critical error. duplicate id for new channel. or not enough memory."));
+				ch_ctx_ptr->fire_exception_caught(channel_error("critical error. duplicate id for new channel. or not enough memory."));
 				ch_ctx_ptr->close_immediately();
 			}
 			else { // successfully inserted
-				fire_acceptor_channel_accepted(peer_endpoint);
+				_acceptor_context_ptr->call_channel_accepted(this, peer_endpoint);
 				new_channel_accepted(ch_ctx_ptr);
 			}
 		}
@@ -115,34 +116,6 @@ protected:
 		}
 	}
 
-	void fire_acceptor_channel_accepted(const asio::ip::tcp::endpoint& peer_endpoint) {
-		acceptor_context* ctx_p = _acceptor_context_ptr.get();
-		ctx_p->done(false); // reset context to 'not done'.
-		// <-- inbound
-		auto begin = acceptor_handlers().begin();
-		auto end = acceptor_handlers().end();
-		try {
-			for (auto it = begin ; !(ctx_p->done()) && (it != end) ; it++)
-				(*it)->channel_accepted(ctx_p, peer_endpoint.address().to_string(), peer_endpoint.port());
-		} catch (const std::exception& e) {
-			fire_acceptor_exception_caught(acceptor_error(std::string("An exception has thrown in channel_accepted handler. (") + e.what() + ")"));
-		}
-	}
-
-	void fire_acceptor_exception_caught(const acceptor_error& e) {
-		context_base* ctx_p = _acceptor_context_ptr.get();
-		ctx_p->done(false); // reset context to 'not done'.
-		// <-- inbound
-		auto begin = acceptor_handlers().begin();
-		auto end = acceptor_handlers().end();
-		try {
-			for (auto it = begin ; !(ctx_p->done()) && (it != end) ; it++)
-				(*it)->exception_caught(ctx_p, e);
-		} catch (const std::exception& e2) {
-			fire_acceptor_exception_caught(acceptor_error(std::string("An exception has thrown in exception_caught handler. (") + e2.what() + ")")); // can cause infinite exception...
-		}
-	}
-	
 protected:
 	acceptor_context_ptr _acceptor_context_ptr;
 	acceptor_pipeline_ptr _acceptor_pipeline_ptr;
@@ -150,5 +123,10 @@ protected:
 
 } // namespace net
 } // namespace shan
+
+#include "tcp_server.h"
+#ifdef SHAN_NET_SSL_ENABLE
+#include "ssl_server.h"
+#endif
 
 #endif /* shan_net_tcp_server_base_h */
