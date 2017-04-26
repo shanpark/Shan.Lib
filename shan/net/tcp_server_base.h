@@ -33,9 +33,13 @@ public:
 	void add_acceptor_handler(acceptor_handler_ptr ac_handler_ptr) {
 		std::lock_guard<std::mutex> lock(_shared_mutex);
 		if (_stat == CREATED)
-			_acceptor_pipeline_ptr->add_handler(std::move(ac_handler_ptr));
+			_acceptor_pipeline_ptr->add_handler_ptr(ac_handler_ptr);
 		else
 			throw service_error("the service is already started");
+	}
+
+	typename acceptor_pipeline::handler_ptr get_acceptor_handler_ptr(std::size_t index) {
+		return _acceptor_pipeline_ptr->get_handler_ptr(index);
 	}
 
 	void start(uint16_t port, bool reuse_addr = true, int listen_backlog = DEFAULT_BACKLOG, ip v = ip::v4) {

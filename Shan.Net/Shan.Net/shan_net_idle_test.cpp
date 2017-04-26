@@ -12,7 +12,8 @@
 #include "net/net.h"
 #include "util/pool.h"
 
-#define IDLE_EVENT	1
+#define FIRST_EVENT		1
+#define SECOND_EVENT	2
 
 using namespace std;
 using namespace shan::net;
@@ -59,9 +60,9 @@ class channel_coder_i : public tcp_channel_handler {
 
 		std::time_t time;
 		if (sizeof(std::time_t) == 4)
-			sb_ptr->read_int32(reinterpret_cast<int32_t*>(&time));
+			time = sb_ptr->read_int32();
 		else
-			sb_ptr->read_int64(reinterpret_cast<int64_t*>(&time));
+			time = sb_ptr->read_int64();
 
 		data = std::make_shared<unix_time>(time);
 	}
@@ -93,14 +94,15 @@ public:
 			std::lock_guard<std::mutex> _lock(_mutex);
 			cout << "serv_ch_handler::" << "user_event() called:" << ++c << endl;
 			
-			if (id == IDLE_EVENT) {
-				if (c == 1) {
-					auto data = std::make_shared<unix_time>(3000);
-					ctx->write(data);
-				}
-				else { // (c == 2)
-					ctx->close();
-				}
+			if (id == FIRST_EVENT) {
+				auto data = std::make_shared<unix_time>(3000);
+				ctx->write(data);
+
+				tcp_idle_monitor* handler_p = static_cast<tcp_idle_monitor*>(ctx->get_channel_handler_ptr(0).get());
+				handler_p->reset_channel_timer(ctx->channel_id(), SECOND_EVENT, 1000, nullptr);
+			}
+			else if (id == SECOND_EVENT) {
+				ctx->close();
 			}
 		}
 	}
@@ -110,7 +112,7 @@ public:
 		cout << "serv_ch_handler::" << "exception_caught() - " << e.what() << endl;
 	}
 
-	virtual void channel_created(shan::net::tcp_channel_context_base* ctx, channel_base<protocol::tcp>* channel) override {
+	virtual void channel_created(shan::net::tcp_channel_context_base* ctx, tcp_channel_base* channel) override {
 		std::lock_guard<std::mutex> _lock(_mutex);
 		cout << "serv_ch_handler::" << "channel_created(" << ctx->channel_id() << ") called" << endl;
 	}
@@ -175,7 +177,7 @@ public:
 		cout << "cli_ch_handler::" << "exception_caught() - " << e.what() << endl;
 	}
 
-	virtual void channel_created(shan::net::tcp_channel_context_base* ctx, channel_base<protocol::tcp>* channel) override {
+	virtual void channel_created(shan::net::tcp_channel_context_base* ctx, tcp_channel_base* channel) override {
 		std::lock_guard<std::mutex> _lock(_mutex);
 		cout << "cli_ch_handler::" << "channel_created(" << ctx->channel_id() << ") called" << endl;
 	}
@@ -223,7 +225,7 @@ public:
 void shan_net_idle_test() {
 	shan::net::tcp_server serv;
 	serv.add_acceptor_handler(new acpt_handler_i()); // 이 핸들러는 serv가 destroy될 때 같이 해제된다. 걱정마라..
-	serv.add_channel_handler(new tcp_idle_monitor(IDLE_EVENT, 1000, nullptr)); //
+	serv.add_channel_handler(new tcp_idle_monitor(FIRST_EVENT, 500, nullptr)); //
 	serv.add_channel_handler(new channel_coder_i()); //
 	serv.add_channel_handler(new serv_ch_handler_i()); //
 	iserv_p = &serv;

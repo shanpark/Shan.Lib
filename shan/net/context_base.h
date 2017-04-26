@@ -51,6 +51,14 @@ public:
 		return _done;
 	}
 
+	object_ptr param() {
+		return _param;
+	}
+
+	void param(object_ptr p) {
+		_param = p;
+	}
+
 protected:
 	bool connected() {
 		return _connected;
@@ -95,6 +103,8 @@ protected:
 	bool _connected;
 	channel_task _task_in_progress;
 	context_stat _stat;
+
+	object_ptr _param;
 };
 
 } // namespace net

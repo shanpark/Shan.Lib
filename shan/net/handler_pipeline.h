@@ -19,8 +19,12 @@ public:
 	using ptr = std::shared_ptr<handler_pipeline<Handler>>;
 
 public:
-	void add_handler(handler_ptr h) {
+	void add_handler_ptr(handler_ptr h) {
 		_handlers.push_back(std::move(h));
+	}
+
+	handler_ptr get_handler_ptr(std::size_t index) {
+		return _handlers.at(index);
 	}
 
 	const std::vector<handler_ptr>& handlers() {

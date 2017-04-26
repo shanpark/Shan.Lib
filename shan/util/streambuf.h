@@ -23,7 +23,7 @@ namespace util {
 class streambuf : public shan::object, public std::streambuf, public noncopyable, public poolable<std::size_t> {
 public:
 	explicit streambuf(std::size_t base_size = __def_size)
-	: _base_size(base_size), _buffer() {
+	: _base_size(base_size), _mark(nullptr) {
 		_base_size = std::max<std::size_t>(_base_size, __min_size);
 		_buffer.resize(_base_size);
 		setg(&_buffer[0], &_buffer[0], &_buffer[0]);
@@ -34,6 +34,7 @@ public:
 	virtual void reset(std::size_t base_size) noexcept { // parameter types must be the same as the constructor.
 		setg(&_buffer[0], &_buffer[0], &_buffer[0]);
 		setp(&_buffer[0], &_buffer[0] + _buffer.size());
+		_mark = nullptr;
 	}
 
 	// Get the base size
@@ -97,7 +98,16 @@ public:
 		commit(size);
 		other.consume(other.in_size());
 	}
-	
+
+	void mark() {
+		_mark = gptr();
+	}
+
+	void reset() {
+		if (_mark)
+			setg(eback(), _mark, egptr());
+	}
+
 	std::size_t read(void* buf, std::size_t size_in_byte) {
 		auto size = std::min<std::size_t>(in_size(), size_in_byte);
 		std::memcpy(buf, gptr(), size);
@@ -105,36 +115,77 @@ public:
 		return size;
 	}
 
-	std::size_t read_int8(int8_t* val) {
+	int8_t read_int8() {
 		if (in_size() < 1)
-			return 0;
-		return read(val, 1);
+			throw not_enough_error("not enough data in read_int8().");
+		int8_t val;
+		read(&val, 1);
+		return val;
 	}
-	std::size_t read_int16(int16_t* val) {
+	int16_t read_int16() {
 		if (in_size() < 2)
-			return 0;
-		return read(val, 2);
+			throw not_enough_error("not enough data in read_int16().");
+		int16_t val;
+		read(&val, 2);
+		return ntoh16(val);
 	}
-	std::size_t read_int32(int32_t* val) {
+	int32_t read_int32() {
 		if (in_size() < 4)
-			return 0;
-		return read(val, 4);
+			throw not_enough_error("not enough data in read_int32().");
+		int32_t val;
+		read(&val, 4);
+		return ntoh32(val);
 	}
-	std::size_t read_int64(int64_t* val) {
+	int64_t read_int64() {
 		if (in_size() < 8)
-			return 0;
-		return read(val, 8);
+			throw not_enough_error("not enough data in read_int64().");
+		int64_t val;
+		read(&val, 8);
+		return ntoh64(val);
 	}
 
-	std::size_t read_float(float* val) {
-		if (in_size() < 4)
-			return 0;
-		return read(&val, 4);
+	uint8_t read_uint8() {
+		if (in_size() < 1)
+			throw not_enough_error("not enough data in read_uint8().");
+		uint8_t val;
+		read(&val, 1);
+		return val;
 	}
-	std::size_t read_double(double* val) {
+	uint16_t read_uint16() {
+		if (in_size() < 2)
+			throw not_enough_error("not enough data in read_uint16().");
+		uint16_t val;
+		read(&val, 2);
+		return ntoh16(val);
+	}
+	uint32_t read_uint32() {
+		if (in_size() < 4)
+			throw not_enough_error("not enough data in read_uint32().");
+		uint32_t val;
+		read(&val, 4);
+		return ntoh32(val);
+	}
+	uint64_t read_uint64() {
 		if (in_size() < 8)
-			return 0;
-		return read(&val, 8);
+			throw not_enough_error("not enough data in read_uint64().");
+		uint64_t val;
+		read(&val, 8);
+		return ntoh64(val);
+	}
+
+	float read_float() {
+		if (in_size() < 4)
+			throw not_enough_error("not enough data in read_float().");
+		float val;
+		read(&val, 4);
+		return val;
+	}
+	double read_double() {
+		if (in_size() < 8)
+			throw not_enough_error("not enough data in read_double().");
+		double val;
+		read(&val, 8);
+		return val;
 	}
 
 	std::size_t write(const void* buf, std::size_t size_in_byte) {
@@ -148,12 +199,30 @@ public:
 		return write(&val, 1);
 	}
 	std::size_t write_int16(int16_t val) {
+		val = hton16(val);
 		return write(&val, 2);
 	}
 	std::size_t write_int32(int32_t val) {
+		val = hton32(val);
 		return write(&val, 4);
 	}
 	std::size_t write_int64(int64_t val) {
+		val = hton64(val);
+		return write(&val, 8);
+	}
+	std::size_t write_uint8(uint8_t val) {
+		return write(&val, 1);
+	}
+	std::size_t write_uint16(uint16_t val) {
+		val = hton16(val);
+		return write(&val, 2);
+	}
+	std::size_t write_uint32(uint32_t val) {
+		val = hton32(val);
+		return write(&val, 4);
+	}
+	std::size_t write_uint64(uint64_t val) {
+		val = hton64(val);
 		return write(&val, 8);
 	}
 
@@ -240,11 +309,14 @@ protected:
 		// Update stream positions.
 		setg(&_buffer[0], &_buffer[0], &_buffer[0] + pnext);
 		setp(&_buffer[0] + pnext, &_buffer[0] + pend);
+
+		_mark = nullptr; // mark invalidate
 	}
 
 	enum : std::size_t { __min_size = 128, __def_size = 4096 };
 
 protected:
+	char* _mark;
 	std::size_t _base_size;
 	std::vector<char> _buffer;
 };

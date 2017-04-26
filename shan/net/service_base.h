@@ -37,9 +37,13 @@ public:
 	void add_channel_handler(channel_handler_ptr<Protocol> ch_handler_ptr) {
 		std::lock_guard<std::mutex> lock(_shared_mutex);
 		if (_stat == CREATED)
-			_channel_pipeline_ptr->add_handler(std::move(ch_handler_ptr));
+			_channel_pipeline_ptr->add_handler_ptr(ch_handler_ptr);
 		else
 			throw service_error("the service is already started");
+	}
+
+	typename channel_pipeline<Protocol>::handler_ptr get_channel_handler_ptr(std::size_t index) {
+		return _channel_pipeline_ptr->get_handler_ptr(index);
 	}
 
 	/**
@@ -114,6 +118,7 @@ public:
 
 	channel_context<Protocol>* channel_context_of(std::size_t channel_id) noexcept {
 		try {
+			std::lock_guard<std::mutex> lock(_shared_mutex);
 			return _channel_contexts.at(channel_id).get();
 		} catch (const std::exception&) {
 			// no such channel id

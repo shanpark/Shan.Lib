@@ -35,7 +35,6 @@ public:
 	channel_context(asio::io_service& io_service, service_base<Protocol>* svc_p);
 
 	virtual ~channel_context() {
-		std::cout << ">>>> channel_context destoryed" << std::endl;
 		streambuf_pool::return_object(_read_sb_ptr);
 	}
 
@@ -58,6 +57,10 @@ public:
 				fire_exception_caught(channel_error(std::string("An exception has thrown in user_event handler. (") + e.what() + ")"));
 			}
 		});
+	}
+
+	typename channel_pipeline<Protocol>::handler_ptr get_channel_handler_ptr(std::size_t index) {
+		return _service_p->get_channel_handler_ptr(index);
 	}
 
 	service_base<Protocol>* service_p() {

@@ -64,7 +64,7 @@ protected:
 	
 	virtual void call_channel_created_handler(typename handler_vector<protocol::tcp>::const_iterator begin, typename handler_vector<protocol::tcp>::const_iterator end) override {
 		for (auto it = begin ; !done() && (it != end) ; it++)
-			(*it)->channel_created(this, channel_p());
+			(*it)->channel_created(this, static_cast<tcp_channel_base*>(channel_p()));
 	}
 	
 	virtual void call_channel_connected_handler(typename handler_vector<protocol::tcp>::const_iterator begin, typename handler_vector<protocol::tcp>::const_iterator end) override {

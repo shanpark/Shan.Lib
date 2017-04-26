@@ -57,9 +57,9 @@ class channel_coder : public tcp_channel_handler {
 
 		std::time_t time;
 		if (sizeof(std::time_t) == 4)
-			sb_ptr->read_int32(reinterpret_cast<int32_t*>(&time));
+			time = sb_ptr->read_int32();
 		else
-			sb_ptr->read_int64(reinterpret_cast<int64_t*>(&time));
+			time = sb_ptr->read_int64();
 
 		data = std::make_shared<unix_time>(time);
 	}
@@ -97,7 +97,7 @@ public:
 		cout << "serv_ch_handler::" << "exception_caught() - " << e.what() << endl;
 	}
 
-	virtual void channel_created(shan::net::tcp_channel_context_base* ctx, channel_base<protocol::tcp>* channel) override {
+	virtual void channel_created(shan::net::tcp_channel_context_base* ctx, tcp_channel_base* channel) override {
 		std::lock_guard<std::mutex> _lock(_mutex);
 		cout << "serv_ch_handler::" << "channel_created(" << ctx->channel_id() << ") called" << endl;
 	}
@@ -166,7 +166,7 @@ public:
 		cout << "cli_ch_handler::" << "exception_caught() - " << e.what() << endl;
 	}
 
-	virtual void channel_created(shan::net::tcp_channel_context_base* ctx, channel_base<protocol::tcp>* channel) override {
+	virtual void channel_created(shan::net::tcp_channel_context_base* ctx, tcp_channel_base* channel) override {
 		std::lock_guard<std::mutex> _lock(_mutex);
 		cout << "cli_ch_handler::" << "channel_created(" << ctx->channel_id() << ") called" << endl;
 	}
