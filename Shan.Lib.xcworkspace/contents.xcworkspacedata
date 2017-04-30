@@ -2,6 +2,9 @@
 <Workspace
    version = "1.0">
    <FileRef
+      location = "group:Shan.Util/Shan.Util.xcodeproj">
+   </FileRef>
+   <FileRef
       location = "group:SSLClient/SSLClient.xcodeproj">
    </FileRef>
    <FileRef

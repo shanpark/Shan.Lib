@@ -26,6 +26,12 @@ public:
 	explicit not_enough_error(const char* what) : std::runtime_error(what) {}
 };
 
+class not_found_error : public std::runtime_error {
+public:
+	explicit not_found_error(const std::string& what) : std::runtime_error(what) {}
+	explicit not_found_error(const char* what) : std::runtime_error(what) {}
+};
+
 } // namespace net
 } // namespace shan
 
