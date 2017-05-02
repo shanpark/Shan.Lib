@@ -240,8 +240,8 @@ void shan_net_ssl_test() {
 #endif
 #ifdef MACOS_TEST
 	serv.use_certificate_chain_file("/Users/shanpark/Documents/Shan.Lib/Shan.Net/server.pem");
-	serv.use_private_key_file("/Users/shanpark/Documents/Shan.Lib/Shan.Net/server.pem", PEM);
-	serv.use_tmp_dh_file("/Users/shanpark/Documents/Shan.Lib/Shan.Net/dh2048.pem");
+//	serv.use_private_key_file("/Users/shanpark/Documents/Shan.Lib/Shan.Net/server.pem", PEM);
+//	serv.use_tmp_dh_file("/Users/shanpark/Documents/Shan.Lib/Shan.Net/dh2048.pem");
 #endif
 #ifdef WIN64_TEST
 	serv.use_certificate_chain_file("server.pem");

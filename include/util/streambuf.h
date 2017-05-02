@@ -316,8 +316,8 @@ protected:
 	enum : std::size_t { __min_size = 128, __def_size = 4096 };
 
 protected:
-	char* _mark;
 	std::size_t _base_size;
+	char* _mark;
 	std::vector<char> _buffer;
 };
 

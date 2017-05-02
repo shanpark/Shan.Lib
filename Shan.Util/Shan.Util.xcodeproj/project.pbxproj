@@ -26,13 +26,13 @@
 /* Begin PBXFileReference section */
 		909D42AA1EB439C3005AAE5C /* Shan.Util */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = Shan.Util; sourceTree = BUILT_PRODUCTS_DIR; };
 		909D42AD1EB439C3005AAE5C /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
-		909D42B61EB43AF1005AAE5C /* object.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = object.h; path = ../shan/object.h; sourceTree = "<group>"; };
-		909D42B71EB43B87005AAE5C /* properties.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = properties.h; path = ../shan/util/properties.h; sourceTree = "<group>"; };
-		909D42B81EB43BCE005AAE5C /* util.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = util.h; path = ../shan/util/util.h; sourceTree = "<group>"; };
-		909D42BA1EB49DF1005AAE5C /* utf.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = utf.h; path = ../shan/unicode/utf.h; sourceTree = "<group>"; };
 		909D42BB1EB49FCD005AAE5C /* properties_test.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = properties_test.h; sourceTree = "<group>"; };
 		909D42BC1EB49FE2005AAE5C /* properties_test.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = properties_test.cpp; sourceTree = "<group>"; };
-		909D42BE1EB4C5F7005AAE5C /* exception.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = exception.h; path = ../shan/util/exception.h; sourceTree = "<group>"; };
+		90AB930E1EB8247200AE355A /* utf.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = utf.h; path = ../include/unicode/utf.h; sourceTree = "<group>"; };
+		90AB930F1EB8248000AE355A /* object.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = object.h; path = ../include/object.h; sourceTree = "<group>"; };
+		90AB93101EB824A400AE355A /* properties.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = properties.h; path = ../include/util/properties.h; sourceTree = "<group>"; };
+		90AB93111EB824A400AE355A /* exception.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = exception.h; path = ../include/util/exception.h; sourceTree = "<group>"; };
+		90AB93121EB824A400AE355A /* util.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = util.h; path = ../include/util/util.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -76,8 +76,8 @@
 		909D42B41EB439D4005AAE5C /* shan */ = {
 			isa = PBXGroup;
 			children = (
+				90AB930F1EB8248000AE355A /* object.h */,
 				909D42B91EB49DDD005AAE5C /* unicode */,
-				909D42B61EB43AF1005AAE5C /* object.h */,
 				909D42B51EB43ACC005AAE5C /* util */,
 			);
 			name = shan;
@@ -86,9 +86,9 @@
 		909D42B51EB43ACC005AAE5C /* util */ = {
 			isa = PBXGroup;
 			children = (
-				909D42BE1EB4C5F7005AAE5C /* exception.h */,
-				909D42B81EB43BCE005AAE5C /* util.h */,
-				909D42B71EB43B87005AAE5C /* properties.h */,
+				90AB93101EB824A400AE355A /* properties.h */,
+				90AB93111EB824A400AE355A /* exception.h */,
+				90AB93121EB824A400AE355A /* util.h */,
 			);
 			name = util;
 			sourceTree = "<group>";
@@ -96,7 +96,7 @@
 		909D42B91EB49DDD005AAE5C /* unicode */ = {
 			isa = PBXGroup;
 			children = (
-				909D42BA1EB49DF1005AAE5C /* utf.h */,
+				90AB930E1EB8247200AE355A /* utf.h */,
 			);
 			name = unicode;
 			sourceTree = "<group>";
@@ -206,7 +206,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				HEADER_SEARCH_PATHS = ../shan;
+				HEADER_SEARCH_PATHS = ../include;
 				MACOSX_DEPLOYMENT_TARGET = 10.12;
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -248,7 +248,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				HEADER_SEARCH_PATHS = ../shan;
+				HEADER_SEARCH_PATHS = ../include;
 				MACOSX_DEPLOYMENT_TARGET = 10.12;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SDKROOT = macosx;
@@ -288,6 +288,7 @@
 				909D42B31EB439C3005AAE5C /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};

@@ -9,7 +9,10 @@
 #ifndef shan_object_h
 #define shan_object_h
 
+#include <iostream>
 #include <string>
+#include <typeinfo>
+#include <memory>
 
 namespace shan {
 
@@ -22,6 +25,7 @@ public:
 	}
 
 	// string convert
+	virtual std::ostream& str(std::ostream& os) const { return os << typeid(*this).name(); }
 	virtual std::string str() const { return typeid(*this).name(); }
 	operator std::string() const { return str(); }; // std::string casting operator
 };

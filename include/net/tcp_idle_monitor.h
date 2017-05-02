@@ -93,7 +93,7 @@ private:
 	class _monitor {
 	public:
 		_monitor(asio::io_service& io_service, int32_t id, int64_t expire_time, object_ptr param_ptr, std::function<void(const asio::error_code& error)> timeout_handler)
-		: _timer(io_service), _id(id), _expire_time(expire_time), _param_ptr(param_ptr) {
+		: _id(id), _expire_time(expire_time), _param_ptr(param_ptr), _timer(io_service) {
 			reset_timer(_id, _expire_time, _param_ptr, timeout_handler);
 		}
 
