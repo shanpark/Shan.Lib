@@ -7,12 +7,11 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		909D42AE1EB439C3005AAE5C /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 909D42AD1EB439C3005AAE5C /* main.cpp */; };
-		909D42BD1EB49FE2005AAE5C /* properties_test.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 909D42BC1EB49FE2005AAE5C /* properties_test.cpp */; };
+		90C507E81EC5571700D1E5EF /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 90C507E71EC5571700D1E5EF /* main.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
-		909D42A81EB439C3005AAE5C /* CopyFiles */ = {
+		90C507E21EC5571700D1E5EF /* CopyFiles */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
 			dstPath = /usr/share/man/man1/;
@@ -24,19 +23,17 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		90897B241EC7534B005020AF /* object.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = object.h; path = ../include/shan/object.h; sourceTree = "<group>"; };
-		90897B251EC75357005020AF /* utf.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = utf.h; path = ../include/shan/unicode/utf.h; sourceTree = "<group>"; };
-		90897B261EC7536C005020AF /* properties.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = properties.h; path = ../include/shan/util/properties.h; sourceTree = "<group>"; };
-		90897B271EC7536C005020AF /* exception.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = exception.h; path = ../include/shan/util/exception.h; sourceTree = "<group>"; };
-		90897B281EC7536C005020AF /* util.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = util.h; path = ../include/shan/util/util.h; sourceTree = "<group>"; };
-		909D42AA1EB439C3005AAE5C /* Shan.Util */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = Shan.Util; sourceTree = BUILT_PRODUCTS_DIR; };
-		909D42AD1EB439C3005AAE5C /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
-		909D42BB1EB49FCD005AAE5C /* properties_test.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = properties_test.h; sourceTree = "<group>"; };
-		909D42BC1EB49FE2005AAE5C /* properties_test.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = properties_test.cpp; sourceTree = "<group>"; };
+		90897B1E1EC7527E005020AF /* object.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = object.h; path = ../include/shan/object.h; sourceTree = "<group>"; };
+		90897B201EC75297005020AF /* queue.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = queue.h; path = ../include/shan/thread/queue.h; sourceTree = "<group>"; };
+		90897B211EC75297005020AF /* worker_pool.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = worker_pool.h; path = ../include/shan/thread/worker_pool.h; sourceTree = "<group>"; };
+		90897B221EC75297005020AF /* spinlock_queue.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = spinlock_queue.h; path = ../include/shan/thread/spinlock_queue.h; sourceTree = "<group>"; };
+		90897B231EC75297005020AF /* spinlock.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = spinlock.h; path = ../include/shan/thread/spinlock.h; sourceTree = "<group>"; };
+		90C507E41EC5571700D1E5EF /* Shan.Thread */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = Shan.Thread; sourceTree = BUILT_PRODUCTS_DIR; };
+		90C507E71EC5571700D1E5EF /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		909D42A71EB439C3005AAE5C /* Frameworks */ = {
+		90C507E11EC5571700D1E5EF /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -46,127 +43,116 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		909D42A11EB439C3005AAE5C = {
+		90C507DB1EC5571700D1E5EF = {
 			isa = PBXGroup;
 			children = (
-				909D42B41EB439D4005AAE5C /* shan */,
-				909D42AC1EB439C3005AAE5C /* Shan.Util */,
-				909D42AB1EB439C3005AAE5C /* Products */,
+				90C507EE1EC5572300D1E5EF /* shan */,
+				90C507E61EC5571700D1E5EF /* Shan.Thread */,
+				90C507E51EC5571700D1E5EF /* Products */,
 			);
 			sourceTree = "<group>";
 		};
-		909D42AB1EB439C3005AAE5C /* Products */ = {
+		90C507E51EC5571700D1E5EF /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				909D42AA1EB439C3005AAE5C /* Shan.Util */,
+				90C507E41EC5571700D1E5EF /* Shan.Thread */,
 			);
 			name = Products;
 			sourceTree = "<group>";
 		};
-		909D42AC1EB439C3005AAE5C /* Shan.Util */ = {
+		90C507E61EC5571700D1E5EF /* Shan.Thread */ = {
 			isa = PBXGroup;
 			children = (
-				909D42AD1EB439C3005AAE5C /* main.cpp */,
-				909D42BB1EB49FCD005AAE5C /* properties_test.h */,
-				909D42BC1EB49FE2005AAE5C /* properties_test.cpp */,
+				90C507E71EC5571700D1E5EF /* main.cpp */,
 			);
-			path = Shan.Util;
+			path = Shan.Thread;
 			sourceTree = "<group>";
 		};
-		909D42B41EB439D4005AAE5C /* shan */ = {
+		90C507EE1EC5572300D1E5EF /* shan */ = {
 			isa = PBXGroup;
 			children = (
-				90897B241EC7534B005020AF /* object.h */,
-				909D42B91EB49DDD005AAE5C /* unicode */,
-				909D42B51EB43ACC005AAE5C /* util */,
+				90897B1E1EC7527E005020AF /* object.h */,
+				90C507F01EC5576000D1E5EF /* thread */,
 			);
 			name = shan;
 			sourceTree = "<group>";
 		};
-		909D42B51EB43ACC005AAE5C /* util */ = {
+		90C507F01EC5576000D1E5EF /* thread */ = {
 			isa = PBXGroup;
 			children = (
-				90897B261EC7536C005020AF /* properties.h */,
-				90897B271EC7536C005020AF /* exception.h */,
-				90897B281EC7536C005020AF /* util.h */,
+				90897B201EC75297005020AF /* queue.h */,
+				90897B211EC75297005020AF /* worker_pool.h */,
+				90897B221EC75297005020AF /* spinlock_queue.h */,
+				90897B231EC75297005020AF /* spinlock.h */,
 			);
-			name = util;
-			sourceTree = "<group>";
-		};
-		909D42B91EB49DDD005AAE5C /* unicode */ = {
-			isa = PBXGroup;
-			children = (
-				90897B251EC75357005020AF /* utf.h */,
-			);
-			name = unicode;
+			name = thread;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		909D42A91EB439C3005AAE5C /* Shan.Util */ = {
+		90C507E31EC5571700D1E5EF /* Shan.Thread */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 909D42B11EB439C3005AAE5C /* Build configuration list for PBXNativeTarget "Shan.Util" */;
+			buildConfigurationList = 90C507EB1EC5571700D1E5EF /* Build configuration list for PBXNativeTarget "Shan.Thread" */;
 			buildPhases = (
-				909D42A61EB439C3005AAE5C /* Sources */,
-				909D42A71EB439C3005AAE5C /* Frameworks */,
-				909D42A81EB439C3005AAE5C /* CopyFiles */,
+				90C507E01EC5571700D1E5EF /* Sources */,
+				90C507E11EC5571700D1E5EF /* Frameworks */,
+				90C507E21EC5571700D1E5EF /* CopyFiles */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 			);
-			name = Shan.Util;
-			productName = Shan.Util;
-			productReference = 909D42AA1EB439C3005AAE5C /* Shan.Util */;
+			name = Shan.Thread;
+			productName = Shan.Thread;
+			productReference = 90C507E41EC5571700D1E5EF /* Shan.Thread */;
 			productType = "com.apple.product-type.tool";
 		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
-		909D42A21EB439C3005AAE5C /* Project object */ = {
+		90C507DC1EC5571700D1E5EF /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
 				LastUpgradeCheck = 0810;
 				ORGANIZATIONNAME = "Sung Han Park";
 				TargetAttributes = {
-					909D42A91EB439C3005AAE5C = {
+					90C507E31EC5571700D1E5EF = {
 						CreatedOnToolsVersion = 8.1;
 						ProvisioningStyle = Automatic;
 					};
 				};
 			};
-			buildConfigurationList = 909D42A51EB439C3005AAE5C /* Build configuration list for PBXProject "Shan.Util" */;
+			buildConfigurationList = 90C507DF1EC5571700D1E5EF /* Build configuration list for PBXProject "Shan.Thread" */;
 			compatibilityVersion = "Xcode 3.2";
 			developmentRegion = English;
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
 			);
-			mainGroup = 909D42A11EB439C3005AAE5C;
-			productRefGroup = 909D42AB1EB439C3005AAE5C /* Products */;
+			mainGroup = 90C507DB1EC5571700D1E5EF;
+			productRefGroup = 90C507E51EC5571700D1E5EF /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				909D42A91EB439C3005AAE5C /* Shan.Util */,
+				90C507E31EC5571700D1E5EF /* Shan.Thread */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXSourcesBuildPhase section */
-		909D42A61EB439C3005AAE5C /* Sources */ = {
+		90C507E01EC5571700D1E5EF /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				909D42BD1EB49FE2005AAE5C /* properties_test.cpp in Sources */,
-				909D42AE1EB439C3005AAE5C /* main.cpp in Sources */,
+				90C507E81EC5571700D1E5EF /* main.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
-		909D42AF1EB439C3005AAE5C /* Debug */ = {
+		90C507E91EC5571700D1E5EF /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -206,7 +192,10 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				HEADER_SEARCH_PATHS = ../include;
+				HEADER_SEARCH_PATHS = (
+					../include,
+					../boost_1_64_0,
+				);
 				MACOSX_DEPLOYMENT_TARGET = 10.12;
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -214,7 +203,7 @@
 			};
 			name = Debug;
 		};
-		909D42B01EB439C3005AAE5C /* Release */ = {
+		90C507EA1EC5571700D1E5EF /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -248,21 +237,24 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				HEADER_SEARCH_PATHS = ../include;
+				HEADER_SEARCH_PATHS = (
+					../include,
+					../boost_1_64_0,
+				);
 				MACOSX_DEPLOYMENT_TARGET = 10.12;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SDKROOT = macosx;
 			};
 			name = Release;
 		};
-		909D42B21EB439C3005AAE5C /* Debug */ = {
+		90C507EC1EC5571700D1E5EF /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Debug;
 		};
-		909D42B31EB439C3005AAE5C /* Release */ = {
+		90C507ED1EC5571700D1E5EF /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -272,25 +264,25 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		909D42A51EB439C3005AAE5C /* Build configuration list for PBXProject "Shan.Util" */ = {
+		90C507DF1EC5571700D1E5EF /* Build configuration list for PBXProject "Shan.Thread" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				909D42AF1EB439C3005AAE5C /* Debug */,
-				909D42B01EB439C3005AAE5C /* Release */,
+				90C507E91EC5571700D1E5EF /* Debug */,
+				90C507EA1EC5571700D1E5EF /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		909D42B11EB439C3005AAE5C /* Build configuration list for PBXNativeTarget "Shan.Util" */ = {
+		90C507EB1EC5571700D1E5EF /* Build configuration list for PBXNativeTarget "Shan.Thread" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				909D42B21EB439C3005AAE5C /* Debug */,
-				909D42B31EB439C3005AAE5C /* Release */,
+				90C507EC1EC5571700D1E5EF /* Debug */,
+				90C507ED1EC5571700D1E5EF /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};
-	rootObject = 909D42A21EB439C3005AAE5C /* Project object */;
+	rootObject = 90C507DC1EC5571700D1E5EF /* Project object */;
 }

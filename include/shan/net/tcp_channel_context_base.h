@@ -119,8 +119,8 @@ protected:
 } // namespace shan
 
 #ifdef SHAN_NET_SSL_ENABLE
-#include "ssl_channel_context.h"
+#include <shan/net/ssl_channel_context.h>
 #endif
-#include "tcp_channel_context.h"
+#include <shan/net/tcp_channel_context.h>
 
 #endif /* shan_net_tcp_channel_context_base_h */

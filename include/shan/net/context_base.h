@@ -110,7 +110,7 @@ protected:
 } // namespace net
 } // namespace shan
 
-#include "channel_context.h"
-#include "acceptor_context.h"
+#include <shan/net/channel_context.h>
+#include <shan/net/acceptor_context.h>
 
 #endif /* shan_net_context_base_h */

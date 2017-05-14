@@ -14,7 +14,7 @@
 #include <limits>
 #include <mutex>
 #include <cassert>
-#include "../object.h"
+#include <shan/object.h>
 
 namespace shan {
 namespace util {

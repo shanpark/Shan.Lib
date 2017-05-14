@@ -10,6 +10,6 @@
 #define shan_net_ssl_h
 
 #define SHAN_NET_SSL_ENABLE
-#include "net.h"
+#include <shan/net.h>
 
 #endif /* shan_net_ssl_h */

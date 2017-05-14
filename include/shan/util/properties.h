@@ -10,9 +10,9 @@
 #define shan_util_properties_h
 
 #include <map>
-#include "../object.h"
-#include "unicode/utf.h"
-#include "exception.h"
+#include <shan/object.h>
+#include <shan/unicode/utf.h>
+#include <shan/util/exception.h>
 
 namespace shan {
 namespace util {

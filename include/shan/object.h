@@ -32,6 +32,10 @@ public:
 
 using object_ptr = std::shared_ptr<object>;
 
+inline std::ostream& operator<<(std::ostream& os, const object& o) {
+	return o.str(os);
+}
+
 } // namespace shan
 
 namespace std {

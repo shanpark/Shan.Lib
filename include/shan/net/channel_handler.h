@@ -71,7 +71,4 @@ using udp_channel_handler = channel_handler<protocol::udp>;
 } // namespace net
 } // namespace shan
 
-//#include "tcp_channel_handler.h"
-//#include "udp_channel_handler.h"
-
 #endif /* shan_net_channel_handler_h */

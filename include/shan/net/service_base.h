@@ -270,7 +270,7 @@ protected:
 } // namespace shan
 
 #ifdef SHAN_NET_SSL_ENABLE
-#include "ssl_service_base.h"
+#include <shan/net/ssl_service_base.h>
 #endif
 
 #endif /* shan_net_service_base_h */

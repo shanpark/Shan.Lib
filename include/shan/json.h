@@ -19,12 +19,12 @@
 #include <cctype>
 #include <utility>
 
-#include "../object.h"
-#include "exception.h"
-#include "unicode/utf.h"
-#include "util/util.h"
-#include "util/streambuf.h"
+#include <shan/object.h>
+#include <shan/json/exception.h>
+#include <shan/unicode/utf.h>
+#include <shan/util/util.h>
+#include <shan/util/streambuf.h>
 
-#include "value.h"
+#include <shan/json/value.h>
 
 #endif /* shan_json_h */

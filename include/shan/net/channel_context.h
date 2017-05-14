@@ -325,10 +325,10 @@ using udp_channel_context_base_ptr = udp_channel_context_base::ptr;
 } // namespace net
 } // namespace shan
 
-#include "service_base.h"
+#include <shan/net/service_base.h>
 
-#include "tcp_channel_context_base.h"
-#include "udp_channel_context.h"
+#include <shan/net/tcp_channel_context_base.h>
+#include <shan/net/udp_channel_context.h>
 
 namespace shan {
 namespace net {

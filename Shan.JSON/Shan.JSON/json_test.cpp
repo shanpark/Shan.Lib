@@ -10,7 +10,7 @@
 #include <iostream>
 #include <sstream>
 #include "json_test.h"
-#include "json/json.h"
+#include "shan/json.h"
 
 using namespace shan::json;
 

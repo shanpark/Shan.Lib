@@ -13,14 +13,15 @@
 #include <vector>
 #include <limits>
 #include <algorithm>
-#include "exception.h"
-#include "util.h"
-#include "pool.h"
+
+#include <shan/util/exception.h>
+#include <shan/util/util.h>
+#include <shan/util/pool.h>
 
 namespace shan {
 namespace util {
 
-class streambuf : public shan::object, public std::streambuf, public noncopyable, public poolable<std::size_t> {
+class streambuf : public object, public std::streambuf, public noncopyable, public poolable<std::size_t> {
 public:
 	explicit streambuf(std::size_t base_size = __def_size)
 	: _base_size(base_size), _mark(nullptr) {

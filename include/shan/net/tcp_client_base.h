@@ -113,9 +113,9 @@ protected:
 } // namespace net
 } // namespace shan
 
-#include "tcp_client.h"
+#include <shan/net/tcp_client.h>
 #ifdef SHAN_NET_SSL_ENABLE
-#include "ssl_client.h"
+#include <shan/net/ssl_client.h>
 #endif
 
 #endif /* shan_net_tcp_client_base_h */

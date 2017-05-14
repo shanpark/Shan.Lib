@@ -9,8 +9,8 @@
 #include <stdio.h>
 #include <iostream>
 #include <ctime>
-#include "net/net.h"
-#include "util/pool.h"
+#include <shan/net.h>
+#include <shan/util/pool.h>
 
 using namespace std;
 using namespace shan::net;

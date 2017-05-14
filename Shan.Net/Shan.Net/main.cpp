@@ -13,9 +13,9 @@
 
 #include <stdio.h>
 #include <iostream>
-#include "util/util.h"
-#include "util/pool.h"
-#include "util/streambuf.h"
+#include <shan/util/util.h>
+#include <shan/util/pool.h>
+#include <shan/util/streambuf.h>
 #include "shan_net_test.h"
 
 void streambuf_test() {

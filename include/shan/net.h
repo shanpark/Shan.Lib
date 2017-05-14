@@ -31,21 +31,21 @@
 #include <utility>
 #include <chrono>
 
-#include "../object.h"
-#include "util/util.h"
-#include "util/pool.h"
-#include "util/streambuf.h"
-#include "constants.h"
-#include "exception.h"
-#include "ip_port.h"
-#include "acceptor_handler.h"
-#include "channel_handler.h"
-#include "handler_pipeline.h"
+#include <shan/object.h>
+#include <shan/util/util.h>
+#include <shan/util/pool.h>
+#include <shan/util/streambuf.h>
+#include <shan/net/constants.h>
+#include <shan/net/exception.h>
+#include <shan/net/ip_port.h>
+#include <shan/net/acceptor_handler.h>
+#include <shan/net/channel_handler.h>
+#include <shan/net/handler_pipeline.h>
 
-#include "acceptor.h"
-#include "channel_base.h"
-#include "context_base.h"
+#include <shan/net/acceptor.h>
+#include <shan/net/channel_base.h>
+#include <shan/net/context_base.h>
 
-#include "tcp_idle_monitor.h"
+#include <shan/net/tcp_idle_monitor.h>
 
 #endif /* shan_net_h */

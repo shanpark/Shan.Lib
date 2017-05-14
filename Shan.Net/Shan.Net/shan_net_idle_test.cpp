@@ -9,8 +9,8 @@
 #include <stdio.h>
 #include <iostream>
 #include <ctime>
-#include "net/net.h"
-#include "util/pool.h"
+#include <shan/net.h>
+#include <shan/util/pool.h>
 
 #define FIRST_EVENT		1
 #define SECOND_EVENT	2

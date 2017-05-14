@@ -40,6 +40,6 @@ private:
 } // namespace net
 } // namespace shan
 
-#include "tcp_client_base.h"
+#include <shan/net/tcp_client_base.h>
 
 #endif /* shan_net_tcp_channel_context_h */

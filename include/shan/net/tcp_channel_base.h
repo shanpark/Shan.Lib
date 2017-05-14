@@ -55,9 +55,9 @@ protected:
 } // namespace net
 } // namespace shan
 
-#include "tcp_channel.h"
+#include <shan/net/tcp_channel.h>
 #ifdef SHAN_NET_SSL_ENABLE
-#include "ssl_channel.h"
+#include <shan/net/ssl_channel.h>
 #endif
 
 #endif /* shan_net_tcp_channel_base_h */

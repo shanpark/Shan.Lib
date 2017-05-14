@@ -8,7 +8,7 @@
 
 #include <iostream>
 #include <sstream>
-#include "util/properties.h"
+#include <shan/util/properties.h>
 
 using namespace shan;
 

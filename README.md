@@ -10,7 +10,7 @@ C++ Class Library for C++11
 
     [Shan.JSON Manual](http://progtrend.blogspot.kr/p/shanjson.html)
 
-<pre><code>#include "json/json.h"
+<pre><code>#include &lt;shan/json.h&gt;
 ...
 
 shan::json::object json("{\"key\":\"value\", \"encoded\":true}"); // parsing & constructing object.
@@ -33,7 +33,7 @@ std::string jt = json.str(); // generating JSON text from object.
  - Asio 1.10.8 (standalone)
  - openssl 1.1.0e
 
- <pre><code>#include "net/net.h"
+ <pre><code>#include &lt;shan/net.h&gt;
 
 // *** Please refer to the test sources...
 

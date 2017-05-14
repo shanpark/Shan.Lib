@@ -407,23 +407,6 @@ inline std::ostream& operator<<(std::ostream& os, const string& str) {
 			sprintf(buf, "\\u%04X", (int)*it);
 			os << buf;
 		}
-//		else if (*it & 0x80) { // any unicode characters can be placed in JSON string.
-//			int used_bytes = 0;
-//			char32_t utf32 = unicode::to_utf32(&(*it), &used_bytes);
-//			if (used_bytes == 0) { // converting fail
-//				os << *it;
-//			}
-//			else {
-//				it += (used_bytes - 1);
-//
-//				char buf[8];
-//				auto utf16 = unicode::utf32_to_utf16(utf32);
-//				for (auto jt = utf16.cbegin() ; jt != utf16.cend() ; jt++) {
-//					sprintf(buf, "\\u%04X", (int)*jt);
-//					os << buf;
-//				}
-//			}
-//		}
 		else {
 			os << *it;
 		}

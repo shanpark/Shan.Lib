@@ -183,7 +183,7 @@ using udp_channel_context_ptr = std::shared_ptr<udp_channel_context>;
 } // namespace net
 } // namespace shan
 
-#include "udp_service.h"
+#include <shan/net/udp_service.h>
 
 namespace shan {
 namespace net {
