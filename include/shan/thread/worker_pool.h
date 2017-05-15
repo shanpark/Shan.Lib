@@ -11,6 +11,7 @@
 
 #include <functional>
 #include <future>
+#include <vector>
 
 #include <shan/object.h>
 #include <shan/thread/spinlock_queue.h>
@@ -31,36 +32,47 @@ public:
 		}
 	}
 
-	std::future<void> send(work_t work) {
+	std::future<void> schedule(work_t work) {
 		if (_running) {
-			std::packaged_task<void()> task(work);
-			auto f = task.get_future();
-			_task_queue.push(std::move(task));
-			{
-				std::lock_guard<std::mutex> lock(_mutex);
-				_cv.notify_one();
+			if (_worker_count > 0) {
+				std::packaged_task<void()> task(work);
+				auto f = task.get_future();
+				_task_queue.push(std::move(task));
+				{
+					std::lock_guard<std::mutex> lock(_mutex);
+					_cv.notify_one();
+				}
+				return f;
 			}
-			return f;
+			else {
+				work();
+				return std::future<void>();
+			}
 		}
 		return std::future<void>();
 	}
 
 	void wait_complete() {
-		std::unique_lock<std::mutex> lock(_complete_mutex);
-		_complete_cv.wait(lock, [this](){ return (_working_threads == 0); });
+		if (_worker_count > 0) {
+			std::unique_lock<std::mutex> lock(_complete_mutex);
+			_complete_cv.wait(lock, [this](){ return (_working_threads == 0); });
+		}
 	}
 
 	void stop(bool wait) {
 		_wait_stop = wait;
 		_running = false;
-		{
-			std::lock_guard<std::mutex> lock(_mutex);
-			_cv.notify_all();
-		}
 
-		for (std::thread& t : _workers) {
-			if (t.joinable())
-				t.join();
+		if (_worker_count > 0) {
+			{
+				std::lock_guard<std::mutex> lock(_mutex);
+				_cv.notify_all();
+			}
+
+			for (std::thread& t : _workers) {
+				if (t.joinable())
+					t.join();
+			}
 		}
 	}
 
@@ -87,7 +99,7 @@ public:
 	}
 
 private:
-	std::size_t _worker_count;
+	const std::size_t _worker_count;
 	std::atomic_bool _running;
 	std::atomic_bool _wait_stop;
 	std::atomic_int _working_threads;

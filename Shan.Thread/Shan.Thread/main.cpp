@@ -32,7 +32,7 @@ int main(int argc, const char * argv[]) {
 		thread::worker_pool p(WORKER_COUNT);
 		process = 0;
 		for (int inx = 0 ; inx < COUNT ; inx++) {
-			p.send(work);
+			p.schedule(work);
 		}
 		p.wait_complete();
 		end = std::chrono::system_clock::now();
@@ -48,11 +48,11 @@ int main(int argc, const char * argv[]) {
 //		for (int inx = 0 ; inx < COUNT ; inx++) {
 //			work();
 //		}
+//		end = std::chrono::system_clock::now();
+//		std::chrono::duration<double> elapsed_seconds = end-start;
+//		std::cout << "No thread time: " << elapsed_seconds.count() << std::endl;
+//		std::cout << "process:" << process << std::endl;
 //	}
-//	end = std::chrono::system_clock::now();
-//	elapsed_seconds = end-start;
-//	std::cout << "No thread time: " << elapsed_seconds.count() << std::endl;
-//	std::cout << "process:" << process << std::endl;
 
 	return 0;
 }
