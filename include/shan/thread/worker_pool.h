@@ -32,6 +32,10 @@ public:
 		}
 	}
 
+	std::size_t worker_count() {
+		return _worker_count;
+	}
+
 	std::future<void> schedule(work_t work) {
 		if (_running) {
 			if (_worker_count > 0) {
@@ -55,7 +59,9 @@ public:
 	void wait_complete() {
 		if (_worker_count > 0) {
 			std::unique_lock<std::mutex> lock(_complete_mutex);
-			_complete_cv.wait(lock, [this](){ return (_working_threads == 0); });
+			_complete_cv.wait(lock, [this](){
+				return (_task_queue.empty() && (_working_threads == 0)); // must check _task_queue first.
+			});
 		}
 	}
 
@@ -80,18 +86,20 @@ public:
 		std::packaged_task<void()> task;
 
 		while (_running || _wait_stop) {
-			if (_task_queue.pop(task)) {
-				++_working_threads;
-				task();
-				if ((--_working_threads == 0) && _task_queue.empty()) {
-					std::lock_guard<std::mutex> lock(_complete_mutex);
-					_complete_cv.notify_all();
-				}
-			}
-			else {
-				std::unique_lock<std::mutex> lock(_mutex);
+			++_working_threads;
 
-				if (!_running && _wait_stop) // running은 아니고 wait_stop 상태인데 queue가 비었다면 loop를 빠져나가도록 한다.
+			while (_task_queue.pop(task) && (_running || _wait_stop))
+				task();
+
+			{
+				std::lock_guard<std::mutex> lock(_complete_mutex);
+				if ((--_working_threads == 0) && _task_queue.empty())
+					_complete_cv.notify_all();
+			}
+
+			{
+				std::unique_lock<std::mutex> lock(_mutex);
+				if (!_running)
 					break;
 				_cv.wait(lock, [this](){ return !_task_queue.empty() || !_running; });
 			}

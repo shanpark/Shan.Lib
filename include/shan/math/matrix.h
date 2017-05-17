@@ -11,8 +11,10 @@
 
 #include <cassert>
 #include <random>
-#include "object.h"
-#include "util.h"
+#include <algorithm>
+#include <shan/object.h>
+#include <shan/thread/worker_pool.h>
+#include <shan/util/util.h>
 
 namespace shan {
 namespace math {
@@ -126,10 +128,11 @@ public:
 
 		T* dest = m._data_ptr.get();
 		const T* row_src_start = _data_ptr.get();
-		const T* col_src_start = input._data_ptr.get();
+		const T* col_src_start;
 		const T* lpos;
 		const T* rpos;
 		for (std::size_t r = 0 ; r < m._rows ; r++) {
+			col_src_start = input._data_ptr.get(); // rewind.
 			for (std::size_t c = 0 ; c < m._cols ; c++) {
 				lpos = row_src_start;
 				rpos = col_src_start;
@@ -143,10 +146,58 @@ public:
 				dest++;
 				col_src_start++;
 			}
-			col_src_start = input._data_ptr.get(); // rewind.
 			row_src_start += _cols;
 		}
 
+		return m;
+	}
+
+	matrix<T> dot(const matrix<T>& input, thread::worker_pool& workers) const {
+		assert(_cols == input._rows);
+
+		matrix<T> m(_rows, input._cols);
+
+		std::size_t rows = std::max<std::size_t>(1, _rows / workers.worker_count());
+		while (((rows * _cols * input._cols) < 28000) && (rows < _rows))
+			rows <<= 1;
+
+		if (rows >= _rows)
+			return dot(input);
+
+		T* dest = m._data_ptr.get();
+		std::size_t start = 0, end = rows;
+		while (start < _rows) {
+			workers.schedule([this, start, end, dest, &input](){
+
+				auto d = dest;
+				const T* row_src_start = _data_ptr.get() + (start * _cols);
+				for (std::size_t r = start ; r < end ; r++) {
+					const T* col_src_start = input._data_ptr.get(); // rewind.
+					for (std::size_t c = 0 ; c < input._cols ; c++) {
+						const T* lpos = row_src_start;
+						const T* rpos = col_src_start;
+						*d = 0;
+						for (std::size_t inx = 0 ; inx < _cols ; inx++) {
+							*d += (*lpos * *rpos);
+
+							lpos++;
+							rpos += input._cols;
+						}
+						d++;
+						col_src_start++;
+					}
+					row_src_start += _cols;
+				}
+
+				return;
+			});
+			dest += (rows * input._cols);
+
+			start = end;
+			end = std::min<std::size_t>(end + rows, _rows);
+		}
+
+		workers.wait_complete();
 		return m;
 	}
 
